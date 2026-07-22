@@ -47,6 +47,10 @@ export default function Home() {
   const [mailArrived, setMailArrived] = useState(false);
   const [mailUnread, setMailUnread] = useState(false);
   const [mailToast, setMailToast] = useState(false);
+  const [shellExtended, setShellExtended] = useState(false);
+  const [shellRestoring, setShellRestoring] = useState(false);
+  const [shellProgress, setShellProgress] = useState(0);
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("Канал нестабилен");
 
@@ -60,6 +64,10 @@ export default function Home() {
     }
     if (localStorage.getItem("memoria-mail-arrived") === "true") setMailArrived(true);
     if (localStorage.getItem("memoria-mail-unread") === "true") setMailUnread(true);
+    if (localStorage.getItem("memoria-shell-extended") === "true") {
+      setShellExtended(true);
+      setTerminal(["MEMORIA shell v2.0 · EXTENDED MODE", "Введите help для списка команд."]);
+    }
     const receiveMail = () => { setMailArrived(true); setMailUnread(true); setMailToast(true); setTimeout(() => setMailToast(false), 12000); };
     window.addEventListener("memoria-mail-arrived", receiveMail);
     return () => window.removeEventListener("memoria-mail-arrived", receiveMail);
@@ -91,6 +99,7 @@ export default function Home() {
   }
 
   function closeWindow(app: AppId) {
+    if (app === "terminal" && shellRestoring && !window.confirm("Восстановление ещё выполняется. Закрытие терминала может повредить модуль. Всё равно закрыть окно?")) return;
     setWindows((current) => {
       const next = { ...current };
       delete next[app];
@@ -142,12 +151,46 @@ export default function Home() {
     const raw = command.trim();
     const cmd = raw.toLowerCase();
     let response = `Команда не найдена: ${raw}`;
-    if (!raw) return;
-    if (cmd === "help") response = "Команды: ls, cat <файл>, status, recover <файл>, hack <url>, clear";
+    if (!raw || shellRestoring) return;
+    setCommandHistory((items) => [...items, raw]);
+    if (cmd === "help") response = shellExtended ? "Базовые: help, clear, dir, open, status, whoami, history\nРасширенные: lookup <объект>, trace <адрес>, inspect <объект>, decrypt-log <файл>, system-map, mail-header, wallet-info" : "Команды: help, clear, dir, open <файл>, status, whoami, history";
+    if (cmd === "dir") response = "README.txt  system.log  .trash  inheritance.arc  terminal_notes";
+    if (cmd === "whoami") response = "recovery_guest [read-only] · session MEM-0314";
+    if (cmd === "history") response = commandHistory.length ? commandHistory.map((item, index) => `${index + 1}  ${item}`).join("\n") : "История команд пуста.";
+    if (cmd.startsWith("open ")) response = `Запрос на открытие: ${raw.slice(5)}\nИспользуйте проводник для просмотра объекта.`;
     if (cmd === "ls") response = "README.txt  system.log  .trash/user_fragment.log  inheritance.arc";
     if (cmd === "status") response = "Том RECOVERY: 63%  |  Последний вход: unknown_17  |  отметка времени повреждена";
     if (cmd === "cat system.log") response = "[??:14] login: unknown_17\n[??:17] deleted: user_fragment.log\n[??:18] archive locked";
     if (cmd === "cat user_fragment.log" || cmd === "cat .trash/user_fragment.log") response = restored ? "HOUR_FRAGMENT = 03\nKEY_FORMAT = HHMM" : "Ошибка: файл помечен как удалённый. Используйте recover.";
+    const restoreCommand = /^restore-shell\s+(?:--module\s+(?:extended|ext)\s+--source\s+recovery_04|extended\s+recovery_04)$/i.test(raw.replace(/\s+/g, " "));
+    if (restoreCommand) {
+      if (shellExtended) response = "Extended shell уже установлен. Повторное восстановление не требуется.";
+      else {
+        response = "[00:00] Checking recovery source...";
+        setShellRestoring(true); setShellProgress(2);
+        const recoveryLogs = [
+          [1800, 9, "[00:04] Source recovery_04 found."],
+          [3900, 18, "[00:09] Verifying module signature..."],
+          [7100, 27, "[00:15] Warning: system files incomplete."],
+          [9700, 41, "[00:22] Recovering analysis libraries..."],
+          [13300, 54, "[00:31] Restoring network index..."],
+          [16400, 66, "[00:39] Loading identity correlation module..."],
+          [19700, 79, "[00:47] Registering LOOKUP command..."],
+          [22100, 90, "[00:54] Extended shell installed."],
+          [24400, 97, "[00:58] Restarting terminal service..."],
+          [26000, 100, "[01:00] COMPLETE."],
+        ] as const;
+        recoveryLogs.forEach(([delay, progress, line], index) => setTimeout(() => {
+          setShellProgress(progress); setTerminal((lines) => [...lines, line]);
+          if (index === recoveryLogs.length - 1) {
+            localStorage.setItem("memoria-shell-extended", "true");
+            setTimeout(() => { setShellExtended(true); setShellRestoring(false); setTerminal(["MEMORIA shell v2.0 · EXTENDED MODE", "Analysis module LOOKUP registered.", "Введите help для списка команд."]); setNotice("Terminal — Extended Mode"); }, 1100);
+          }
+        }, delay));
+      }
+    }
+    if (shellExtended && cmd.startsWith("lookup")) response = cmd === "lookup" ? "LOOKUP: требуется идентификатор объекта." : `LOOKUP ${raw.slice(7).trim()}: объект принят модулем анализа. Данные появятся в следующей главе.`;
+    if (shellExtended && ["trace","inspect","decrypt-log","system-map","mail-header","wallet-info"].some((name) => cmd === name || cmd.startsWith(name + " "))) response = `${cmd.split(" ")[0].toUpperCase()}: модуль установлен, источник данных пока недоступен.`;
     if (cmd === "pkg search protocol:pika" || cmd === "pkg search pika") response = "Подключение к legacy.memoria... OK\nСинхронизация индекса пакетов... OK\n\nНайдено: 2\npikanichok-browser  0.8.14  legacy  [PIKA, HTTP]\npikaview-lite       0.3.1   unsupported";
     if (cmd === "pkg info pikanichok-browser") response = "Пакет: pikanichok-browser\nНазвание: Pikanichok Navigator\nВерсия: 0.8.14\nРазмер загрузки: 14.8 MB\nИздатель: PIKA Systems\nПодпись: ПРОСРОЧЕНА\nПротоколы: HTTP, PIKA, MEM, SIXSEVEN";
     if (cmd.startsWith("hack ")) {
@@ -241,10 +284,10 @@ export default function Home() {
         {browserInstalled && <DesktopIcon icon="◎" label="Pikanichok" onClick={() => { setBrowserPage("home"); openWindow("browser"); }} />}
       </section>
 
-      {zOrder.map((app, index) => windows[app] === "open" && <Window key={app} title={windowTitle(app)} active={zOrder[zOrder.length - 1] === app} layer={index} app={app} onFocus={() => focusWindow(app)} onClose={() => closeWindow(app)} onMinimize={() => minimizeWindow(app)}>
+      {zOrder.map((app, index) => windows[app] === "open" && <Window key={app} title={app === "terminal" && shellExtended ? "Terminal — Extended Mode" : windowTitle(app)} active={zOrder[zOrder.length - 1] === app} layer={index} app={app} onFocus={() => focusWindow(app)} onClose={() => closeWindow(app)} onMinimize={() => minimizeWindow(app)}>
         {app === "readme" && <Readme onContinue={() => openWindow("files")} />}
         {app === "files" && <FileExplorer selected={selectedFile} setSelected={setSelectedFile} restored={restored} openArchive={() => openWindow("archive")} />}
-        {app === "terminal" && <div className="terminal"><div className="terminal-output">{terminal.map((line, i) => <TerminalLine key={i} line={line} />)}<div ref={terminalEndRef} /></div><div className="terminal-input"><span>C:\RECOVERY&gt;</span><input value={command} onChange={(e) => setCommand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && runCommand()} aria-label="Команда терминала" /></div></div>}
+        {app === "terminal" && <div className={`terminal ${shellExtended ? "terminal-extended" : ""}`}><div className="terminal-output">{terminal.map((line, i) => <TerminalLine key={i} line={line} />)}<div ref={terminalEndRef} /></div>{shellRestoring && <div className="shell-progress"><div><i style={{ width: `${shellProgress}%` }} /></div><span>RESTORE EXTENDED SHELL · {shellProgress}%</span></div>}<div className="terminal-input"><span>{shellExtended ? "C:\\EXTENDED>" : "C:\\RECOVERY>"}</span><input disabled={shellRestoring} value={command} onChange={(e) => setCommand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && runCommand()} placeholder={shellRestoring ? "terminal service busy..." : ""} aria-label="Команда терминала" /></div></div>}
         {app === "archive" && <Archive restored={restored} code={archiveCode} setCode={setArchiveCode} unlock={unlockArchive} done={chapterDone} openLink={() => { if (browserInstalled) setLinkWarning("pika://oblako-foto/xxx-228-lox/"); else setProtocolError(true); }} openCryptoLink={() => { if (browserInstalled) setLinkWarning("pika://crypto-ne-naebalovo-100%/walet/526967148866"); else setProtocolError(true); }} />}
         {app === "log" && <pre className="text-file">[??:14:08] LOGIN unknown_17\n[??:17:42] DELETE user_fragment.log\n[??:18:01] LOCK inheritance.arc\n[??:18:07] SESSION LOST</pre>}
         {app === "help" && <HelpDocument />}
