@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type AppId = "readme" | "files" | "terminal" | "archive" | "log" | "help" | "browser";
+type AppId = "readme" | "files" | "terminal" | "archive" | "log" | "help" | "browser" | "mail";
 type FileId = "readme" | "photo" | "note" | "deleted" | "archive" | "log" | "epstein";
 type WindowMode = "open" | "minimized";
 
@@ -44,6 +44,8 @@ export default function Home() {
   const [linkWarning, setLinkWarning] = useState<string | null>(null);
   const [browserPage, setBrowserPage] = useState<"home" | "cloud" | "crypto" | "hackshop">("home");
   const [browserNavKey, setBrowserNavKey] = useState(0);
+  const [mailArrived, setMailArrived] = useState(false);
+  const [mailUnread, setMailUnread] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("Канал нестабилен");
 
@@ -55,6 +57,11 @@ export default function Home() {
     if (localStorage.getItem("memoria-pikanichok") === "installed") {
       setBrowserInstalled(true); setInstallState("done");
     }
+    if (localStorage.getItem("memoria-mail-arrived") === "true") setMailArrived(true);
+    if (localStorage.getItem("memoria-mail-unread") === "true") setMailUnread(true);
+    const receiveMail = () => { setMailArrived(true); setMailUnread(true); };
+    window.addEventListener("memoria-mail-arrived", receiveMail);
+    return () => window.removeEventListener("memoria-mail-arrived", receiveMail);
   }, []);
 
   useEffect(() => {
@@ -229,6 +236,7 @@ export default function Home() {
         <DesktopIcon icon="▧" label="Мои файлы" onClick={() => openWindow("files")} />
         <DesktopIcon icon="⌫" label="Корзина" onClick={() => { setSelectedFile("deleted"); openWindow("files"); }} />
         <DesktopIcon icon=">_" label="Терминал" onClick={() => openWindow("terminal")} />
+        <DesktopIcon icon="✉" label="Почта" badge={mailUnread} onClick={() => { setMailUnread(false); localStorage.setItem("memoria-mail-unread", "false"); openWindow("mail"); }} />
         {browserInstalled && <DesktopIcon icon="◎" label="Pikanichok" onClick={() => { setBrowserPage("home"); openWindow("browser"); }} />}
       </section>
 
@@ -239,12 +247,13 @@ export default function Home() {
         {app === "archive" && <Archive restored={restored} code={archiveCode} setCode={setArchiveCode} unlock={unlockArchive} done={chapterDone} openLink={() => { if (browserInstalled) setLinkWarning("pika://oblako-foto/xxx-228-lox/"); else setProtocolError(true); }} openCryptoLink={() => { if (browserInstalled) setLinkWarning("pika://crypto-ne-naebalovo-100%/walet/526967148866"); else setProtocolError(true); }} />}
         {app === "log" && <pre className="text-file">[??:14:08] LOGIN unknown_17\n[??:17:42] DELETE user_fragment.log\n[??:18:01] LOCK inheritance.arc\n[??:18:07] SESSION LOST</pre>}
         {app === "help" && <HelpDocument />}
+        {app === "mail" && <MailClient hasMail={mailArrived} />}
         {app === "browser" && <Pikanichok page={browserPage} navKey={browserNavKey} />}
       </Window>)}
 
       {protocolError && <div className="protocol-error" role="alertdialog" aria-label="Ошибка протокола"><header>MEMORIA NETWORK SERVICE <button onClick={() => setProtocolError(false)}>×</button></header><div className="error-body"><div className="error-icon">!</div><div><h3>Невозможно открыть этот адрес</h3><p>В системе отсутствует обработчик протокола <b>PIKA</b>.</p><pre>Адрес: pika://oblako-foto/xxx-228-lox/{`\n`}Код ошибки: NO_PROTOCOL_HANDLER</pre><p className="error-hint">Совместимое программное обеспечение может находиться в старых репозиториях.</p><code>pkg search protocol:pika</code></div></div><footer><button className="system-button" onClick={() => setProtocolError(false)}>Закрыть</button></footer></div>}
       {linkWarning && <div className="link-warning" role="alertdialog" aria-label="Подтверждение перехода"><header>ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ</header><div className="link-warning-body"><div className="warning-icon">!</div><div><h3>Вы уверены, что хотите перейти на этот сайт?</h3><p>Адрес находится вне защищённой области MEMORIA:</p><code>{linkWarning}</code><small>Подлинность и безопасность узла не проверены.</small></div></div><footer><button className="system-button" onClick={() => setLinkWarning(null)}>Отмена</button><button className="system-button danger" onClick={() => { const target = linkWarning.includes("crypto-ne-naebalovo") ? "crypto" : linkWarning.includes("blackbox-market") ? "hackshop" : "cloud"; setLinkWarning(null); setBrowserPage(target); setBrowserNavKey((value) => value + 1); openWindow("browser"); }}>Перейти</button></footer></div>}
-      {malware && <MalwareStorm onClose={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); location.reload(); }} />}
+      {malware && <MalwareStorm onClose={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); localStorage.removeItem("memoria-mail-arrived"); localStorage.removeItem("memoria-mail-unread"); location.reload(); }} />}
 
       <div className="status-toast"><i className={chapterDone ? "ok" : ""} /> {notice}</div>
       <footer className="taskbar">
@@ -252,7 +261,7 @@ export default function Home() {
         {zOrder.map((app) => windows[app] && <button key={app} className={`task-button ${windows[app] === "minimized" ? "is-minimized" : zOrder[zOrder.length - 1] === app ? "is-active" : ""}`} onClick={() => toggleTaskWindow(app)}>{windowTitle(app)}</button>)}
         <div className="tray"><span>▥</span><span>{time}</span></div>
       </footer>
-      {startOpen && <div className="start-menu" onClick={(e) => e.stopPropagation()}><div className="start-brand">MEMORIA <small>4.1</small></div><button onClick={() => { openWindow("files"); setStartOpen(false); }}>▧ Проводник</button><button onClick={() => { openWindow("terminal"); setStartOpen(false); }}>&gt;_ Терминал</button>{browserInstalled && <button onClick={() => { setBrowserPage("home"); openWindow("browser"); setStartOpen(false); }}>◎ Pikanichok Navigator</button>}<button onClick={() => { openWindow("help"); setStartOpen(false); }}>? Справка</button><div className="start-divider" /><button onClick={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); location.reload(); }}>↻ Сбросить сеанс</button></div>}
+      {startOpen && <div className="start-menu" onClick={(e) => e.stopPropagation()}><div className="start-brand">MEMORIA <small>4.1</small></div><button onClick={() => { openWindow("files"); setStartOpen(false); }}>▧ Проводник</button><button onClick={() => { openWindow("terminal"); setStartOpen(false); }}>&gt;_ Терминал</button><button onClick={() => { setMailUnread(false); localStorage.setItem("memoria-mail-unread", "false"); openWindow("mail"); setStartOpen(false); }}>✉ Почта</button>{browserInstalled && <button onClick={() => { setBrowserPage("home"); openWindow("browser"); setStartOpen(false); }}>◎ Pikanichok Navigator</button>}<button onClick={() => { openWindow("help"); setStartOpen(false); }}>? Справка</button><div className="start-divider" /><button onClick={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); localStorage.removeItem("memoria-mail-arrived"); localStorage.removeItem("memoria-mail-unread"); location.reload(); }}>↻ Сбросить сеанс</button></div>}
       <div className="scanlines" />
     </main>
   );
@@ -267,7 +276,7 @@ function WalletInterface({ stage, setStage, auditRow, setAuditRow, auditDifferen
   return <div className="wallet-app"><div className="wallet-appbar"><div><span className="wallet-avatar">CN</span><b>Crypto Wallet</b></div><div className="wallet-sync"><i /> Синхронизировано</div></div><div className="wallet-dashboard"><section className="portfolio-card"><small>ОБЩИЙ БАЛАНС</small><h1>{drained ? "$0.00" : "$4,388,692.77"}</h1><p>{drained ? "0.000000 BTC" : "67.660314 BTC"} <em>+2.41% сегодня</em></p>{stage === "balance" && <div className="wallet-pending">Исходящая транзакция синхронизируется…</div>}<div className="wallet-actions"><button onClick={() => setAction("send")}><b>↗</b>Перевести</button><button onClick={() => setAction("receive")}><b>↙</b>Пополнить</button><button><b>⇄</b>Обменять</button><button><b>⋯</b>Ещё</button></div></section>{drained && <div className="wallet-feed-alert"><span>!</span><div><b>Перевод завершён</b><p>unknown_17: «Спасибо за ключ»</p></div><time>только что</time></div>}<div className="market-strip"><div><span>BTC / USD</span><b>$64,850.21</b><em>+2.41%</em></div><div><span>ETH / USD</span><b>$3,486.08</b><em>+1.08%</em></div><div><span>Рынок</span><b>$2.39T</b><em>+1.74%</em></div></div><section className="wallet-section"><header><h2>Активы</h2><button>Все активы</button></header>{assets.map((asset) => <div className="asset-row" key={asset.ticker}><i>{asset.icon}</i><div><b>{asset.name}</b><span>{asset.ticker}</span></div><div><b>{asset.amount}</b><span>{asset.value}</span></div><em className={asset.change.startsWith("−") ? "negative" : ""}>{asset.change}</em></div>)}</section><section className="wallet-section transactions"><header><h2>История транзакций</h2><button>Фильтр</button></header>{drained && <button className="tx-row suspicious-tx" onClick={() => setStage("audit")}><i>↗</i><div><b>Перевод · unknown_17</b><span>Сегодня, только что · 6 подтверждений</span></div><div><b>−67.660314 BTC</b><span>Открыть детали →</span></div></button>}<div className="tx-row"><i>↙</i><div><b>Получено</b><span>14 мар., 03:14 · bc1q...0314</span></div><div><b className="positive">+52.400000 BTC</b><span>Завершено</span></div></div><div className="tx-row"><i>⇄</i><div><b>Обмен ETH → BTC</b><span>11 мар., 17:42</span></div><div><b>+15.260314 BTC</b><span>Завершено</span></div></div></section></div>{action && <div className="wallet-action-modal"><div><header>{action === "send" ? "Перевести криптовалюту" : "Пополнить кошелёк"}<button onClick={() => setAction(null)}>×</button></header>{action === "send" ? <><label>Адрес получателя<input placeholder="Введите адрес кошелька"/></label><label>Сумма<input placeholder="0.000000 BTC"/></label><p>Доступно: {drained ? "0.000000" : "67.660314"} BTC</p><button className="wallet-primary" disabled={drained}>{drained ? "Недостаточно средств" : "Продолжить"}</button></> : <><div className="fake-qr">▦</div><code>bc1q-memoria-526967148866</code><p>Отправляйте на этот адрес только BTC.</p><button className="wallet-primary">Копировать адрес</button></>}</div></div>}</div>;
 }
 
-function DesktopIcon({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) { return <button className="desktop-icon" onDoubleClick={onClick} onClick={onClick}><span>{icon}</span><em>{label}</em></button>; }
+function DesktopIcon({ icon, label, onClick, badge = false }: { icon: string; label: string; onClick: () => void; badge?: boolean }) { return <button className="desktop-icon" onDoubleClick={onClick} onClick={onClick}><span>{icon}</span>{badge && <b className="desktop-badge">1</b>}<em>{label}</em></button>; }
 function TerminalLine({ line }: { line: string }) {
   if (line.startsWith("[RED]")) return <div className="terminal-alert">{line.slice(5)}</div>;
   const parts = line.split("SIXSEVEN");
@@ -288,15 +297,23 @@ function MalwareStorm({ onClose }: { onClose: () => void }) {
   return <div className="malware-storm">{Array.from({ length: visible }, (_, index) => !closed.includes(index) && <div key={index} className={`malware-window ad-${index % 4}`} style={{ left: `${(index * 17) % 76}%`, top: `${(index * 29) % 70}%`, zIndex: 200 + index, transform: `rotate(${(index % 5) - 2}deg)` }}><header>РЕКЛАМА <button onClick={() => closeAd(index)}>×</button></header><div><b>{index % 2 ? "$" : "!"}</b><span>{ads[index % ads.length]}<small>Нажмите здесь, пока не поздно</small></span></div></div>)}<div className="malware-counter">Закрыто окон: {closed.length} · Активно: {visible - closed.length}</div></div>;
 }
 function Window({ title, active, layer, app, onClose, onMinimize, onFocus, children }: { title: string; active: boolean; layer: number; app: AppId; onClose: () => void; onMinimize: () => void; onFocus: () => void; children: React.ReactNode }) {
-  const positions: Record<AppId, { left: string; top: string }> = { readme: { left: "48%", top: "47%" }, files: { left: "52%", top: "50%" }, terminal: { left: "55%", top: "54%" }, archive: { left: "50%", top: "49%" }, log: { left: "54%", top: "46%" }, help: { left: "46%", top: "52%" }, browser: { left: "51%", top: "48%" } };
+  const positions: Record<AppId, { left: string; top: string }> = { readme: { left: "48%", top: "47%" }, files: { left: "52%", top: "50%" }, terminal: { left: "55%", top: "54%" }, archive: { left: "50%", top: "49%" }, log: { left: "54%", top: "46%" }, help: { left: "46%", top: "52%" }, browser: { left: "51%", top: "48%" }, mail: { left: "49%", top: "51%" } };
   return <section className={`window ${active ? "window-active" : "window-inactive"}`} style={{ zIndex: 10 + layer, left: positions[app].left, top: positions[app].top }} onMouseDown={onFocus}><header className="titlebar"><span>▥ {title}</span><div><button aria-label={`Свернуть ${title}`} onClick={(e) => { e.stopPropagation(); onMinimize(); }}>_</button><button aria-label={`Закрыть ${title}`} onClick={(e) => { e.stopPropagation(); onClose(); }}>×</button></div></header><nav className="menubar">Файл　 Правка　 Вид　 Справка</nav><div className="window-content">{children}</div><div className="window-status">MEMORIA REMOTE VOLUME · READ ONLY</div></section>;
 }
-function windowTitle(app: AppId) { return ({ readme: "ПРОЧТИ_МЕНЯ — Блокнот", files: "Проводник — RECOVERY", terminal: "Командная строка", archive: "Архиватор", log: "system.log", help: "Справка MEMORIA", browser: "Pikanichok Navigator 0.8.14" })[app]; }
+function windowTitle(app: AppId) { return ({ readme: "ПРОЧТИ_МЕНЯ — Блокнот", files: "Проводник — RECOVERY", terminal: "Командная строка", archive: "Архиватор", log: "system.log", help: "Справка MEMORIA", browser: "Pikanichok Navigator 0.8.14", mail: "MEMORIA Mail" })[app]; }
 
 function Readme({ onContinue }: { onContinue: () => void }) { return <article className="document letter"><div className="stamp">URGENT<br/><b>14 MAR</b></div><p className="mono-meta">RECOVERY NOTE / НЕ ОТПРАВЛЯТЬ ПО ПОЧТЕ</p><h1>Если ты это читаешь — резервный канал сработал.</h1><p>Кто-то получил доступ к моему компьютеру. Я успел перенести сюда несколько файлов, связанных с наследством, но часть данных удалена.</p><p>Начни с первой фотографии. Система сохранила только правую половину времени, а левую кто-то удалил вместе с журналом пользователя.</p><p>Чтобы открыть архив, придётся восстановить недостающий фрагмент и соединить обе половины.</p><p className="signature">— твой брат<br/><small>P.S. Если увидишь пользователя <b>unknown_17</b>, отключись.</small></p><button className="system-button" onClick={onContinue}>Открыть файлы →</button></article>; }
 
 function HelpDocument() {
   return <article className="document help-document"><p className="mono-meta">MEMORIA RECOVERY SYSTEM · USER MANUAL</p><h1>Справка MEMORIA</h1><p>Вы подключены к повреждённой резервной копии удалённого компьютера. Исследуйте рабочий стол, открывайте файлы и сопоставляйте найденные сведения. Некоторые объекты повреждены, удалены, зашифрованы или намеренно спрятаны.</p><h3>Основные правила</h3><ul><li>Открывайте файлы и ссылки обычным или двойным щелчком.</li><li>Свёрнутые программы остаются на панели задач. Закрытое окно можно открыть повторно.</li><li>Записывайте числа, слова, адреса и необычные названия файлов. Они могут понадобиться значительно позже.</li><li>Не каждая найденная подсказка является правильной. В системе присутствуют ложные следы.</li><li>Перед вводом паролей обращайте внимание на требуемый формат.</li></ul><p>Терминал используется для просмотра, восстановления, установки и исследования данных. Чтобы узнать подробнее и увидеть список доступных команд, откройте терминал и введите:</p><pre>help</pre><p>Команды вводятся вручную и выполняются клавишей Enter. Для некоторых команд необходимо указать имя файла.</p><h3>Браузер Pikanichok</h3><p>Адреса <code>pika://</code> не открываются без совместимого браузера. В Pikanichok можно вводить адреса вручную, создавать вкладки и переключаться между ними. Переход на неизвестные узлы может иметь последствия.</p><h3>Рекомендации</h3><ul><li>Лучше проходить игру с блокнотом или заметками.</li><li>Если задача кажется невозможной, вернитесь к ранее найденным данным.</li><li>Не обновляйте страницу во время длительной операции.</li><li>Если система начала вести себя странно, возможно, это результат вашего действия, а не ошибка игры.</li></ul></article>;
+}
+
+function MailClient({ hasMail }: { hasMail: boolean }) {
+  const [folder, setFolder] = useState("Входящие");
+  const [opened, setOpened] = useState(false);
+  const folders = [{ name: "Входящие", icon: "▤", count: hasMail ? 1 : 0 }, { name: "Отправленные", icon: "↗", count: 0 }, { name: "Черновики", icon: "▧", count: 0 }, { name: "Спам", icon: "!", count: 0 }];
+  const showMail = folder === "Входящие" && hasMail;
+  return <div className="mail-client"><header><div className="mail-logo">M</div><b>MEMORIA Mail</b><button>Написать</button><span className="mail-sync"><i /> Синхронизация завершена</span></header><div className="mail-layout"><aside>{folders.map((item) => <button key={item.name} className={folder === item.name ? "active" : ""} onClick={() => { setFolder(item.name); setOpened(false); }}><span>{item.icon}</span>{item.name}{item.count > 0 && <b>{item.count}</b>}</button>)}<div className="mail-account"><i>R</i><span>recovery@memoria.local<small>LEGACY IMAP</small></span></div></aside><main>{opened && showMail ? <article className="mail-message"><button onClick={() => setOpened(false)}>← Назад</button><p className="eyebrow">ВХОДЯЩЕЕ СООБЩЕНИЕ</p><h1>Исходящая транзакция подтверждена</h1><div className="mail-from"><b>Ledger Notification Service</b><span>ledger@crypto-ne-naebalovo.pika</span><time>только что</time></div><p>С кошелька <code>526967148866</code> выполнено списание всех доступных средств.</p><pre>СУММА: 67.660314 BTC{`\n`}СТАТУС: 6/6 CONFIRMATIONS{`\n`}ПОЛУЧАТЕЛЬ: unknown_17{`\n`}TX REFERENCE: LEDGER-417</pre><p>Автоматическое сообщение. Ответ на этот адрес невозможен.</p></article> : <><div className="mail-list-head"><h2>{folder}</h2><button>↻ Обновить</button></div>{showMail ? <button className="mail-row unread" onClick={() => setOpened(true)}><i>●</i><div><b>Ledger Notification Service</b><span>Исходящая транзакция подтверждена</span></div><p>Списание 67.660314 BTC завершено…</p><time>сейчас</time></button> : <div className="empty-mail"><div>✉</div><h2>Писем нет</h2><p>В папке «{folder}» пока нет сообщений.</p><small>Последняя синхронизация: только что</small></div>}</>}</main></div><footer>Подключено · recovery@memoria.local · TLS устарел</footer></div>;
 }
 
 function FileExplorer({ selected, setSelected, restored, openArchive }: { selected: FileId; setSelected: (id: FileId) => void; restored: boolean; openArchive: () => void }) {
@@ -342,10 +359,17 @@ function Pikanichok({ page, navKey }: { page: "home" | "cloud" | "crypto" | "hac
   const requestedTab: BrowserTab = page === "crypto" ? { id: 2, title: "Crypto Wallet", address: cryptoAddress, view: "crypto" } : page === "hackshop" ? { id: 2, title: "BLACKBOX Market", address: hackshopAddress, view: "hackshop" } : { id: 2, title: "ОблакоФото", address: cloudAddress, view: "cloud" };
   const initialTabs: BrowserTab[] = page === "home" ? [{ id: 1, title: "Pikanet", address: "pika://home", view: "home" }] : [{ id: 1, title: "Pikanet", address: "pika://home", view: "home" }, requestedTab];
   const [tabs, setTabs] = useState<BrowserTab[]>(initialTabs);
-  const [activeId, setActiveId] = useState(page === "cloud" ? 2 : 1);
+  const [activeId, setActiveId] = useState(page === "home" ? 1 : 2);
   const active = tabs.find((tab) => tab.id === activeId) || tabs[0];
   const [address, setAddress] = useState(active.address);
   const [pendingAddress, setPendingAddress] = useState<string | null>(null);
+
+  function finishWalletDrain() {
+    setWalletStage("drained");
+    localStorage.setItem("memoria-mail-arrived", "true");
+    localStorage.setItem("memoria-mail-unread", "true");
+    window.dispatchEvent(new Event("memoria-mail-arrived"));
+  }
 
   useEffect(() => setAddress(active.address), [active.id, active.address]);
   useEffect(() => {
@@ -354,7 +378,7 @@ function Pikanichok({ page, navKey }: { page: "home" | "cloud" | "crypto" | "hac
       setWalletOpen(true);
       setWalletStage("balance");
       setSeedError(false);
-      drainTimer = setTimeout(() => setWalletStage("drained"), 4500);
+      drainTimer = setTimeout(finishWalletDrain, 4500);
     };
     if (localStorage.getItem("memoria-wallet-hacked") === "true") unlockFromHack();
     window.addEventListener("memoria-wallet-hacked", unlockFromHack);
@@ -408,7 +432,7 @@ function Pikanichok({ page, navKey }: { page: "home" | "cloud" | "crypto" | "hac
   function verifySeed() {
     const normalized = seedPhrase.toLowerCase().replace(/ё/g, "е").replace(/[^а-яa-z\s]/g, " ").replace(/\s+/g, " ").trim();
     const correct = "слово не воробей вообще ничто не воробей кроме самого воробья";
-    if (normalized === correct) { setWalletOpen(true); setWalletStage("balance"); setSeedError(false); setTimeout(() => setWalletStage("drained"), 4500); }
+    if (normalized === correct) { setWalletOpen(true); setWalletStage("balance"); setSeedError(false); setTimeout(finishWalletDrain, 4500); }
     else setSeedError(true);
   }
 
