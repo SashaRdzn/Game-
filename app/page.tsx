@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type AppId = "readme" | "files" | "terminal" | "archive" | "log" | "help" | "browser";
 type FileId = "readme" | "photo" | "note" | "deleted" | "archive" | "log";
@@ -38,6 +38,8 @@ export default function Home() {
   const [browserInstalled, setBrowserInstalled] = useState(false);
   const [installState, setInstallState] = useState<"idle" | "awaiting" | "installing" | "done">("idle");
   const [protocolError, setProtocolError] = useState(false);
+  const [browserPage, setBrowserPage] = useState<"home" | "inheritance">("home");
+  const terminalEndRef = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("Канал нестабилен");
 
   useEffect(() => {
@@ -55,6 +57,10 @@ export default function Home() {
     const timer = setTimeout(() => setBootStep((v) => v + 1), 650);
     return () => clearTimeout(timer);
   }, [bootStep, booted]);
+
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [terminal]);
 
   const time = useMemo(() => new Intl.DateTimeFormat("ru", { hour: "2-digit", minute: "2-digit" }).format(new Date()), []);
 
@@ -99,7 +105,7 @@ export default function Home() {
     if (cmd === "pkg search protocol:pika" || cmd === "pkg search pika") response = "Подключение к legacy.memoria... OK\nСинхронизация индекса пакетов... OK\n\nНайдено: 2\npikanichok-browser  0.8.14  legacy  [PIKA, HTTP]\npikaview-lite       0.3.1   unsupported";
     if (cmd === "pkg info pikanichok-browser") response = "Пакет: pikanichok-browser\nНазвание: Pikanichok Navigator\nВерсия: 0.8.14\nРазмер загрузки: 14.8 MB\nИздатель: PIKA Systems\nПодпись: ПРОСРОЧЕНА\nПротоколы: HTTP, PIKA, MEM";
     if (cmd === "pikanichok") {
-      if (browserInstalled) { response = "Запуск Pikanichok Navigator 0.8.14..."; setTimeout(() => openWindow("browser"), 350); }
+      if (browserInstalled) { response = "Запуск Pikanichok Navigator 0.8.14..."; setBrowserPage("home"); setTimeout(() => openWindow("browser"), 350); }
       else response = "'pikanichok' не является установленной программой.\nПодсказка: pkg search protocol:pika";
     }
     if (cmd === "pkg install pikanichok-browser") {
@@ -113,15 +119,15 @@ export default function Home() {
       response = "Подтверждение получено. Начинаю загрузку...";
       setInstallState("installing");
       const steps = [
-        [500, "Получение legacy-certificates [###.................] 16%"],
-        [1100, "Получение pika-network-driver [########............] 41%"],
-        [1800, "Получение pikanichok-browser [##############......] 73%"],
-        [2600, "archive-01: ошибка контрольной суммы"],
-        [3300, "Переключение на зеркало archive-02... OK"],
-        [4100, "Получение pikanichok-browser [####################] 100%"],
-        [4700, "Настройка pika-network-driver... готово"],
-        [5200, "Регистрация протокола pika://... готово"],
-        [5700, "Создание ярлыка... готово\n\nPikanichok Navigator 0.8.14 установлен.\nКоманда запуска: pikanichok"],
+        [1000, "Получение legacy-certificates [###.................] 16%   420 KB/s"],
+        [4000, "Получение pika-network-driver [########............] 41%   503 KB/s"],
+        [8000, "Получение pikanichok-browser [##############......] 73%   0 KB/s"],
+        [12000, "archive-01: ошибка контрольной суммы (SHA1 mismatch)"],
+        [15000, "Переключение на зеркало archive-02... OK (ping 284 ms)"],
+        [19000, "Получение pikanichok-browser [####################] 100%   14.8 MB"],
+        [22000, "Распаковка и настройка pika-network-driver... готово"],
+        [24500, "Регистрация протокола pika://... готово"],
+        [27000, "Создание ярлыка... готово\n\nPikanichok Navigator 0.8.14 установлен.\nКоманда запуска: pikanichok"],
       ] as const;
       steps.forEach(([delay, line], index) => setTimeout(() => {
         setTerminal((value) => [...value, line]);
@@ -173,17 +179,17 @@ export default function Home() {
         <DesktopIcon icon="▧" label="Мои файлы" onClick={() => openWindow("files")} />
         <DesktopIcon icon="⌫" label="Корзина" onClick={() => { setSelectedFile("deleted"); openWindow("files"); }} />
         <DesktopIcon icon=">_" label="Терминал" onClick={() => openWindow("terminal")} />
-        {browserInstalled && <DesktopIcon icon="◎" label="Pikanichok" onClick={() => openWindow("browser")} />}
+        {browserInstalled && <DesktopIcon icon="◎" label="Pikanichok" onClick={() => { setBrowserPage("home"); openWindow("browser"); }} />}
       </section>
 
       {zOrder.map((app, index) => windows[app] === "open" && <Window key={app} title={windowTitle(app)} active={zOrder[zOrder.length - 1] === app} layer={index} app={app} onFocus={() => focusWindow(app)} onClose={() => closeWindow(app)} onMinimize={() => minimizeWindow(app)}>
         {app === "readme" && <Readme onContinue={() => openWindow("files")} />}
         {app === "files" && <FileExplorer selected={selectedFile} setSelected={setSelectedFile} restored={restored} openArchive={() => openWindow("archive")} />}
-        {app === "terminal" && <div className="terminal"><div className="terminal-output">{terminal.map((line, i) => <div key={i}>{line}</div>)}</div><div className="terminal-input"><span>C:\RECOVERY&gt;</span><input value={command} onChange={(e) => setCommand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && runCommand()} aria-label="Команда терминала" /></div></div>}
-        {app === "archive" && <Archive restored={restored} code={archiveCode} setCode={setArchiveCode} unlock={unlockArchive} done={chapterDone} openLink={() => browserInstalled ? openWindow("browser") : setProtocolError(true)} />}
+        {app === "terminal" && <div className="terminal"><div className="terminal-output">{terminal.map((line, i) => <div key={i}>{line}</div>)}<div ref={terminalEndRef} /></div><div className="terminal-input"><span>C:\RECOVERY&gt;</span><input value={command} onChange={(e) => setCommand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && runCommand()} aria-label="Команда терминала" /></div></div>}
+        {app === "archive" && <Archive restored={restored} code={archiveCode} setCode={setArchiveCode} unlock={unlockArchive} done={chapterDone} openLink={() => { if (browserInstalled) { setBrowserPage("inheritance"); openWindow("browser"); } else setProtocolError(true); }} />}
         {app === "log" && <pre className="text-file">[??:14:08] LOGIN unknown_17\n[??:17:42] DELETE user_fragment.log\n[??:18:01] LOCK inheritance.arc\n[??:18:07] SESSION LOST</pre>}
         {app === "help" && <div className="document"><h2>Справка</h2><p>Исследуйте файлы двойным щелчком. Терминал понимает команды <code>help</code>, <code>ls</code>, <code>cat</code>, <code>status</code> и <code>recover</code>.</p></div>}
-        {app === "browser" && <Pikanichok />}
+        {app === "browser" && <Pikanichok page={browserPage} />}
       </Window>)}
 
       {protocolError && <div className="protocol-error" role="alertdialog" aria-label="Ошибка протокола"><header>MEMORIA NETWORK SERVICE <button onClick={() => setProtocolError(false)}>×</button></header><div className="error-body"><div className="error-icon">!</div><div><h3>Невозможно открыть этот адрес</h3><p>В системе отсутствует обработчик протокола <b>PIKA</b>.</p><pre>Адрес: pika://inheritance/node-0314{`\n`}Код ошибки: NO_PROTOCOL_HANDLER</pre><p className="error-hint">Совместимое программное обеспечение может находиться в старых репозиториях.</p><code>pkg search protocol:pika</code></div></div><footer><button className="system-button" onClick={() => setProtocolError(false)}>Закрыть</button></footer></div>}
@@ -194,7 +200,7 @@ export default function Home() {
         {zOrder.map((app) => windows[app] && <button key={app} className={`task-button ${windows[app] === "minimized" ? "is-minimized" : zOrder[zOrder.length - 1] === app ? "is-active" : ""}`} onClick={() => toggleTaskWindow(app)}>{windowTitle(app)}</button>)}
         <div className="tray"><span>▥</span><span>{time}</span></div>
       </footer>
-      {startOpen && <div className="start-menu" onClick={(e) => e.stopPropagation()}><div className="start-brand">MEMORIA <small>4.1</small></div><button onClick={() => { openWindow("files"); setStartOpen(false); }}>▧ Проводник</button><button onClick={() => { openWindow("terminal"); setStartOpen(false); }}>&gt;_ Терминал</button>{browserInstalled && <button onClick={() => { openWindow("browser"); setStartOpen(false); }}>◎ Pikanichok Navigator</button>}<button onClick={() => { openWindow("help"); setStartOpen(false); }}>? Справка</button><div className="start-divider" /><button onClick={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); location.reload(); }}>↻ Сбросить сеанс</button></div>}
+      {startOpen && <div className="start-menu" onClick={(e) => e.stopPropagation()}><div className="start-brand">MEMORIA <small>4.1</small></div><button onClick={() => { openWindow("files"); setStartOpen(false); }}>▧ Проводник</button><button onClick={() => { openWindow("terminal"); setStartOpen(false); }}>&gt;_ Терминал</button>{browserInstalled && <button onClick={() => { setBrowserPage("home"); openWindow("browser"); setStartOpen(false); }}>◎ Pikanichok Navigator</button>}<button onClick={() => { openWindow("help"); setStartOpen(false); }}>? Справка</button><div className="start-divider" /><button onClick={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); location.reload(); }}>↻ Сбросить сеанс</button></div>}
       <div className="scanlines" />
     </main>
   );
@@ -228,6 +234,7 @@ function Archive({ restored, code, setCode, unlock, done, openLink }: { restored
   return <div className="archive"><div className="lock">▣</div><p className="eyebrow">AES LEGACY CONTAINER</p><h2>НАСЛЕДСТВО.arc</h2><p>Архив повреждён, но заголовок читается. Введите четырёхзначный ключ.</p><label>КЛЮЧ ДОСТУПА<input maxLength={5} value={code} onChange={(e) => setCode(e.target.value)} placeholder="_ _ _ _" /></label><button className="system-button danger" onClick={unlock}>РАСШИФРОВАТЬ</button><small>{restored ? "Удалённый фрагмент восстановлен: часы = 03, формат = HHMM. Минуты ищите на первой фотографии." : "В корзине обнаружен удалённый фрагмент. Его можно восстановить через терминал."}</small></div>;
 }
 
-function Pikanichok() {
+function Pikanichok({ page }: { page: "home" | "inheritance" }) {
+  if (page === "home") return <div className="pika-browser"><div className="pika-toolbar"><button>←</button><button>→</button><button>↻</button><span className="pika-address">pika://home</span><button>ПЕРЕЙТИ</button></div><div className="pika-page pika-home"><div className="pika-logo">PIKANICHOK <small>NAVIGATOR 0.8.14</small></div><div className="home-orbit">◎</div><h1>Добро пожаловать в Pikanet</h1><p>Устаревшая распределённая сеть. Для перехода введите адрес PIKA или откройте совместимую ссылку.</p><div className="home-links"><span>КАТАЛОГ УЗЛОВ — недоступен</span><span>ПОЧТА — соединение отсутствует</span><span>АРХИВ СЕТИ — требуется адрес</span></div></div><div className="pika-status">Домашняя страница · PIKA driver active</div></div>;
   return <div className="pika-browser"><div className="pika-toolbar"><button>←</button><button>→</button><button>↻</button><span className="pika-address">pika://inheritance/node-0314</span><button>ПЕРЕЙТИ</button></div><div className="pika-page"><div className="pika-logo">PIKANICHOK <small>NAVIGATOR 0.8.14</small></div><div className="certificate-warning"><b>СЕРТИФИКАТ УЗЛА ПРОСРОЧЕН</b><span>Последняя проверка: 6 214 дней назад</span></div><h1>Узел найден.</h1><p>Доступ к следующему сектору установлен, но содержимое ещё не загружено.</p><pre>NODE: INHERITANCE-0314{`\n`}OWNER: [REDACTED]{`\n`}REMOTE SESSION: ACTIVE</pre><p className="observer">unknown_17: «Ты установила именно ту версию, которую я оставил»</p><button className="system-button danger">ПРОДОЛЖИТЬ НА СВОЙ РИСК</button></div><div className="pika-status">Готово · защищённость соединения неизвестна</div></div>;
 }
