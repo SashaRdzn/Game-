@@ -27,7 +27,10 @@ button { color:inherit; }
 .desktop-icon:hover,.desktop-icon:focus { background:#526d49cc; border:1px dotted #f1f0d9; outline:none; }
 .desktop-icon span { display:grid; place-items:center; margin:auto; width:45px; height:42px; font:bold 26px Georgia; color:#c9cfb3; background:#1f2e25; border:2px outset #8e9a81; text-shadow:none; }
 .desktop-icon em { display:block; margin-top:5px; font-style:normal; font-size:11px; line-height:1.2; overflow-wrap:anywhere; }
-.window { position:absolute; z-index:10; width:min(760px,calc(100vw - 170px)); height:min(570px,calc(100vh - 105px)); left:50%; top:49%; transform:translate(-50%,-50%); display:flex; flex-direction:column; background:var(--cream); border:3px outset #c8c7b4; box-shadow:12px 14px 0 #10160f66,0 0 0 1px #111; }
+.window { position:absolute; width:min(760px,calc(100vw - 170px)); height:min(570px,calc(100vh - 105px)); transform:translate(-50%,-50%); display:flex; flex-direction:column; background:var(--cream); border:3px outset #c8c7b4; box-shadow:12px 14px 0 #10160f66,0 0 0 1px #111; }
+.window-inactive { filter:saturate(.72) brightness(.94); box-shadow:7px 8px 0 #10160f44,0 0 0 1px #111; }
+.window-inactive .titlebar { background:linear-gradient(90deg,#4c5b4f,#778173); color:#dedfce; }
+.window-active { filter:none; }
 .titlebar { height:32px; flex:none; background:linear-gradient(90deg,#1d3024,#5b7251); color:#f0efdc; display:flex; align-items:center; justify-content:space-between; padding-left:9px; font-weight:bold; letter-spacing:.5px; font-size:13px; }
 .titlebar div { height:100%; display:flex; gap:3px; padding:4px; }
 .titlebar button { width:25px; background:#c6c7b5; border:2px outset #eee; cursor:pointer; font-weight:bold; line-height:1; }
@@ -73,7 +76,7 @@ button { color:inherit; }
 .status-toast i { display:inline-block;width:7px;height:7px;border-radius:50%;background:#b8a93d;margin-right:5px }.status-toast i.ok{background:#6ea765}
 .taskbar { position:absolute; z-index:20; bottom:0; width:100%; height:39px; display:flex; align-items:center; gap:7px; padding:4px; background:#bcbda9; border-top:3px outset #e9ead8; }
 .start { height:29px; font-weight:bold; background:#c5c6b1; border:3px outset #e9ead8; cursor:pointer; }.start span{color:#334e3a}
-.task-button { height:27px; width:210px; text-align:left; background:#b9baa7; border:2px outset #e4e5d3; font-size:11px; cursor:pointer; }.task-button.is-active{background:#8f9883;border-style:inset;font-weight:bold}.task-button.is-minimized{background:#c9cab7;border-style:outset}
+.task-button { height:27px; width:min(210px,18vw); min-width:105px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:left; background:#b9baa7; border:2px outset #e4e5d3; font-size:11px; cursor:pointer; }.task-button.is-active{background:#8f9883;border-style:inset;font-weight:bold}.task-button.is-minimized{background:#c9cab7;border-style:outset;color:#565b50}
 .tray { margin-left:auto; height:28px; min-width:90px; border:2px inset #ddd; display:flex; align-items:center; justify-content:space-around; font-size:11px; }
 .start-menu { position:absolute; z-index:30; bottom:38px; left:3px; width:245px; background:#c9cab8; border:3px outset #eee; box-shadow:5px 5px #1115; padding:4px 4px 4px 31px; }
 .start-brand { position:absolute; left:0; bottom:0; width:27px; height:100%; background:#25382b; color:#dfe1ce; writing-mode:vertical-rl; transform:rotate(180deg); padding:7px 4px; font-weight:bold; letter-spacing:2px; }
