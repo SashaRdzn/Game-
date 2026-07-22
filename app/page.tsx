@@ -38,6 +38,7 @@ export default function Home() {
   const [chapterDone, setChapterDone] = useState(false);
   const [browserInstalled, setBrowserInstalled] = useState(false);
   const [installState, setInstallState] = useState<"idle" | "awaiting" | "installing" | "done">("idle");
+  const [hackInProgress, setHackInProgress] = useState(false);
   const [protocolError, setProtocolError] = useState(false);
   const [malware, setMalware] = useState(false);
   const [linkWarning, setLinkWarning] = useState<string | null>(null);
@@ -96,6 +97,39 @@ export default function Home() {
     else focusWindow(app);
   }
 
+  function startHack(target: "archive" | "cloud" | "wallet", duration: number) {
+    setHackInProgress(true);
+    const labels = { archive: "inheritance.arc", cloud: "PIKA CLOUD AUTH", wallet: "WALLET 526967148866" };
+    const redLogs: Record<number, string> = {
+      4: "[RED]FIREWALL: активная контрмера обнаружена",
+      8: "[RED]ACCESS DENIED · ключевой слот заблокирован",
+      12: "[RED]CONNECTION LOST · повторное подключение через relay-17",
+      16: "[RED]TRACE WARNING: источник сканирования раскрыт",
+      19: "[RED]КРИТИЧЕСКАЯ ОШИБКА: перебор мог завершиться неудачей",
+    };
+    for (let step = 1; step <= 20; step++) {
+      setTimeout(() => {
+        const percent = step * 5;
+        const bar = "#".repeat(step) + ".".repeat(20 - step);
+        const lines = [`HACK ${labels[target]} [${bar}] ${percent}%`, redLogs[step] || `worker-${String((step % 6) + 1).padStart(2, "0")}: перебор блока ${step * 4096}...`];
+        if (step === 20) {
+          if (target === "archive") {
+            lines.push("Взлом завершён. Заголовок архива расшифрован.", "Ключ доступа внедрён: inheritance.arc открыт.");
+            setChapterDone(true); localStorage.setItem("memoria-progress", "chapter1");
+          }
+          if (target === "cloud") lines.push("Взлом завершён. Извлечён пароль: 6766");
+          if (target === "wallet") {
+            lines.push("Аппаратный ключ эмулирован. Кошелёк разблокирован.");
+            localStorage.setItem("memoria-wallet-hacked", "true");
+            window.dispatchEvent(new Event("memoria-wallet-hacked"));
+          }
+          setHackInProgress(false);
+        }
+        setTerminal((value) => [...value, ...lines]);
+      }, Math.round((duration / 20) * step));
+    }
+  }
+
   function runCommand() {
     const raw = command.trim();
     const cmd = raw.toLowerCase();
@@ -110,8 +144,10 @@ export default function Home() {
     if (cmd === "pkg info pikanichok-browser") response = "Пакет: pikanichok-browser\nНазвание: Pikanichok Navigator\nВерсия: 0.8.14\nРазмер загрузки: 14.8 MB\nИздатель: PIKA Systems\nПодпись: ПРОСРОЧЕНА\nПротоколы: HTTP, PIKA, MEM, SIXSEVEN";
     if (cmd.startsWith("hack ")) {
       const target = raw.slice(5).trim().toLowerCase().replace(/\/$/, "");
-      if (target === "pika://oblako-foto/xxx-228-lox") response = "Подключение к узлу... OK\nОбход legacy-auth... OK\nИзвлечён пароль: 6766";
-      else if (target === "pika://crypto-ne-naebalovo-100%/walet/526967148866") response = "HACK FAILED: аппаратное хранилище ключей не отвечает.";
+      if (hackInProgress) response = "HACK BUSY: другой процесс взлома уже выполняется.";
+      else if (["inheritance.arc", "наследство.arc"].includes(target)) { response = "Эксплойт ARCHIVE-LEGACY найден. Начинаю атаку (примерно 2 минуты)..."; startHack("archive", 120000); }
+      else if (target === "pika://oblako-foto/xxx-228-lox") { response = "Уязвимость PIKA-AUTH-08 найдена. Начинаю перебор (примерно 3 минуты)..."; startHack("cloud", 180000); }
+      else if (target === "pika://crypto-ne-naebalovo-100%/walet/526967148866") { response = "Аппаратное шифрование обнаружено. Запускаю эмуляцию ключа (примерно 5 минут)..."; startHack("wallet", 300000); }
       else response = `Сканирование ${raw.slice(5).trim()}...\nУязвимости не обнаружены.`;
     }
     if (cmd === "pkg install universal-hack-device") {
@@ -208,7 +244,7 @@ export default function Home() {
 
       {protocolError && <div className="protocol-error" role="alertdialog" aria-label="Ошибка протокола"><header>MEMORIA NETWORK SERVICE <button onClick={() => setProtocolError(false)}>×</button></header><div className="error-body"><div className="error-icon">!</div><div><h3>Невозможно открыть этот адрес</h3><p>В системе отсутствует обработчик протокола <b>PIKA</b>.</p><pre>Адрес: pika://oblako-foto/xxx-228-lox/{`\n`}Код ошибки: NO_PROTOCOL_HANDLER</pre><p className="error-hint">Совместимое программное обеспечение может находиться в старых репозиториях.</p><code>pkg search protocol:pika</code></div></div><footer><button className="system-button" onClick={() => setProtocolError(false)}>Закрыть</button></footer></div>}
       {linkWarning && <div className="link-warning" role="alertdialog" aria-label="Подтверждение перехода"><header>ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ</header><div className="link-warning-body"><div className="warning-icon">!</div><div><h3>Вы уверены, что хотите перейти на этот сайт?</h3><p>Адрес находится вне защищённой области MEMORIA:</p><code>{linkWarning}</code><small>Подлинность и безопасность узла не проверены.</small></div></div><footer><button className="system-button" onClick={() => setLinkWarning(null)}>Отмена</button><button className="system-button danger" onClick={() => { const target = linkWarning.includes("crypto-ne-naebalovo") ? "crypto" : linkWarning.includes("blackbox-market") ? "hackshop" : "cloud"; setLinkWarning(null); setBrowserPage(target); setBrowserNavKey((value) => value + 1); openWindow("browser"); }}>Перейти</button></footer></div>}
-      {malware && <MalwareStorm onClose={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); location.reload(); }} />}
+      {malware && <MalwareStorm onClose={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); location.reload(); }} />}
 
       <div className="status-toast"><i className={chapterDone ? "ok" : ""} /> {notice}</div>
       <footer className="taskbar">
@@ -216,7 +252,7 @@ export default function Home() {
         {zOrder.map((app) => windows[app] && <button key={app} className={`task-button ${windows[app] === "minimized" ? "is-minimized" : zOrder[zOrder.length - 1] === app ? "is-active" : ""}`} onClick={() => toggleTaskWindow(app)}>{windowTitle(app)}</button>)}
         <div className="tray"><span>▥</span><span>{time}</span></div>
       </footer>
-      {startOpen && <div className="start-menu" onClick={(e) => e.stopPropagation()}><div className="start-brand">MEMORIA <small>4.1</small></div><button onClick={() => { openWindow("files"); setStartOpen(false); }}>▧ Проводник</button><button onClick={() => { openWindow("terminal"); setStartOpen(false); }}>&gt;_ Терминал</button>{browserInstalled && <button onClick={() => { setBrowserPage("home"); openWindow("browser"); setStartOpen(false); }}>◎ Pikanichok Navigator</button>}<button onClick={() => { openWindow("help"); setStartOpen(false); }}>? Справка</button><div className="start-divider" /><button onClick={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); location.reload(); }}>↻ Сбросить сеанс</button></div>}
+      {startOpen && <div className="start-menu" onClick={(e) => e.stopPropagation()}><div className="start-brand">MEMORIA <small>4.1</small></div><button onClick={() => { openWindow("files"); setStartOpen(false); }}>▧ Проводник</button><button onClick={() => { openWindow("terminal"); setStartOpen(false); }}>&gt;_ Терминал</button>{browserInstalled && <button onClick={() => { setBrowserPage("home"); openWindow("browser"); setStartOpen(false); }}>◎ Pikanichok Navigator</button>}<button onClick={() => { openWindow("help"); setStartOpen(false); }}>? Справка</button><div className="start-divider" /><button onClick={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); location.reload(); }}>↻ Сбросить сеанс</button></div>}
       <div className="scanlines" />
     </main>
   );
@@ -224,6 +260,7 @@ export default function Home() {
 
 function DesktopIcon({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) { return <button className="desktop-icon" onDoubleClick={onClick} onClick={onClick}><span>{icon}</span><em>{label}</em></button>; }
 function TerminalLine({ line }: { line: string }) {
+  if (line.startsWith("[RED]")) return <div className="terminal-alert">{line.slice(5)}</div>;
   const parts = line.split("SIXSEVEN");
   return <div>{parts.map((part, index) => <span key={index}>{part}{index < parts.length - 1 && <b className="clue-red">SIXSEVEN</b>}</span>)}</div>;
 }
@@ -297,6 +334,18 @@ function Pikanichok({ page, navKey }: { page: "home" | "cloud" | "crypto" | "hac
   const [pendingAddress, setPendingAddress] = useState<string | null>(null);
 
   useEffect(() => setAddress(active.address), [active.id, active.address]);
+  useEffect(() => {
+    let drainTimer: ReturnType<typeof setTimeout> | undefined;
+    const unlockFromHack = () => {
+      setWalletOpen(true);
+      setWalletStage("balance");
+      setSeedError(false);
+      drainTimer = setTimeout(() => setWalletStage("drained"), 4500);
+    };
+    if (localStorage.getItem("memoria-wallet-hacked") === "true") unlockFromHack();
+    window.addEventListener("memoria-wallet-hacked", unlockFromHack);
+    return () => { window.removeEventListener("memoria-wallet-hacked", unlockFromHack); if (drainTimer) clearTimeout(drainTimer); };
+  }, []);
   useEffect(() => {
     if (page === "home" || navKey === 0) return;
     setTabs((current) => {
