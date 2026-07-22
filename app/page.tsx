@@ -41,6 +41,7 @@ export default function Home() {
   const [protocolError, setProtocolError] = useState(false);
   const [linkWarning, setLinkWarning] = useState(false);
   const [browserPage, setBrowserPage] = useState<"home" | "cloud">("home");
+  const [browserNavKey, setBrowserNavKey] = useState(0);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("Канал нестабилен");
 
@@ -191,11 +192,11 @@ export default function Home() {
         {app === "archive" && <Archive restored={restored} code={archiveCode} setCode={setArchiveCode} unlock={unlockArchive} done={chapterDone} openLink={() => { if (browserInstalled) setLinkWarning(true); else setProtocolError(true); }} />}
         {app === "log" && <pre className="text-file">[??:14:08] LOGIN unknown_17\n[??:17:42] DELETE user_fragment.log\n[??:18:01] LOCK inheritance.arc\n[??:18:07] SESSION LOST</pre>}
         {app === "help" && <div className="document"><h2>Справка</h2><p>Исследуйте файлы двойным щелчком. Терминал понимает команды <code>help</code>, <code>ls</code>, <code>cat</code>, <code>status</code> и <code>recover</code>.</p></div>}
-        {app === "browser" && <Pikanichok page={browserPage} />}
+        {app === "browser" && <Pikanichok page={browserPage} navKey={browserNavKey} />}
       </Window>)}
 
       {protocolError && <div className="protocol-error" role="alertdialog" aria-label="Ошибка протокола"><header>MEMORIA NETWORK SERVICE <button onClick={() => setProtocolError(false)}>×</button></header><div className="error-body"><div className="error-icon">!</div><div><h3>Невозможно открыть этот адрес</h3><p>В системе отсутствует обработчик протокола <b>PIKA</b>.</p><pre>Адрес: pika://oblako-foto/xxx-228-lox/{`\n`}Код ошибки: NO_PROTOCOL_HANDLER</pre><p className="error-hint">Совместимое программное обеспечение может находиться в старых репозиториях.</p><code>pkg search protocol:pika</code></div></div><footer><button className="system-button" onClick={() => setProtocolError(false)}>Закрыть</button></footer></div>}
-      {linkWarning && <div className="link-warning" role="alertdialog" aria-label="Подтверждение перехода"><header>ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ</header><div className="link-warning-body"><div className="warning-icon">!</div><div><h3>Вы уверены, что хотите перейти на этот сайт?</h3><p>Адрес находится вне защищённой области MEMORIA:</p><code>pika://oblako-foto/xxx-228-lox/</code><small>Подлинность и безопасность узла не проверены.</small></div></div><footer><button className="system-button" onClick={() => setLinkWarning(false)}>Отмена</button><button className="system-button danger" onClick={() => { setLinkWarning(false); setBrowserPage("cloud"); openWindow("browser"); }}>Перейти</button></footer></div>}
+      {linkWarning && <div className="link-warning" role="alertdialog" aria-label="Подтверждение перехода"><header>ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ</header><div className="link-warning-body"><div className="warning-icon">!</div><div><h3>Вы уверены, что хотите перейти на этот сайт?</h3><p>Адрес находится вне защищённой области MEMORIA:</p><code>pika://oblako-foto/xxx-228-lox/</code><small>Подлинность и безопасность узла не проверены.</small></div></div><footer><button className="system-button" onClick={() => setLinkWarning(false)}>Отмена</button><button className="system-button danger" onClick={() => { setLinkWarning(false); setBrowserPage("cloud"); setBrowserNavKey((value) => value + 1); openWindow("browser"); }}>Перейти</button></footer></div>}
 
       <div className="status-toast"><i className={chapterDone ? "ok" : ""} /> {notice}</div>
       <footer className="taskbar">
@@ -245,7 +246,7 @@ function Archive({ restored, code, setCode, unlock, done, openLink }: { restored
 type BrowserView = "home" | "cloud" | "notfound";
 type BrowserTab = { id: number; title: string; address: string; view: BrowserView };
 
-function Pikanichok({ page }: { page: "home" | "cloud" }) {
+function Pikanichok({ page, navKey }: { page: "home" | "cloud"; navKey: number }) {
   const [cloudPassword, setCloudPassword] = useState("");
   const [cloudOpen, setCloudOpen] = useState(false);
   const [cloudError, setCloudError] = useState(false);
@@ -258,6 +259,19 @@ function Pikanichok({ page }: { page: "home" | "cloud" }) {
   const [pendingAddress, setPendingAddress] = useState<string | null>(null);
 
   useEffect(() => setAddress(active.address), [active.id, active.address]);
+  useEffect(() => {
+    if (page !== "cloud" || navKey === 0) return;
+    setTabs((current) => {
+      const existing = current.find((tab) => tab.view === "cloud" && tab.address.replace(/\/$/, "") === cloudAddress.replace(/\/$/, ""));
+      if (existing) {
+        setActiveId(existing.id);
+        return current;
+      }
+      const id = Math.max(...current.map((tab) => tab.id), 0) + 1;
+      setActiveId(id);
+      return [...current, { id, title: "ОблакоФото", address: cloudAddress, view: "cloud" }];
+    });
+  }, [page, navKey]);
 
   function applyAddress(value: string) {
     const normalized = value.trim() || "pika://home";
