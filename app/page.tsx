@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type AppId = "readme" | "files" | "terminal" | "archive" | "log" | "help" | "browser";
-type FileId = "readme" | "photo" | "note" | "deleted" | "archive" | "log";
+type FileId = "readme" | "photo" | "note" | "deleted" | "archive" | "log" | "epstein";
 type WindowMode = "open" | "minimized";
 
 const files: Record<FileId, { name: string; icon: string; app: AppId }> = {
@@ -13,6 +13,7 @@ const files: Record<FileId, { name: string; icon: string; app: AppId }> = {
   deleted: { name: "user_fragment.log", icon: "⌫", app: "files" },
   archive: { name: "НАСЛЕДСТВО.arc", icon: "▣", app: "archive" },
   log: { name: "system.log", icon: "≡", app: "log" },
+  epstein: { name: ".Jeffrey_Epstein_year", icon: "⊘", app: "files" },
 };
 
 const bootLines = [
@@ -38,7 +39,7 @@ export default function Home() {
   const [browserInstalled, setBrowserInstalled] = useState(false);
   const [installState, setInstallState] = useState<"idle" | "awaiting" | "installing" | "done">("idle");
   const [protocolError, setProtocolError] = useState(false);
-  const [browserPage, setBrowserPage] = useState<"home" | "inheritance">("home");
+  const [browserPage, setBrowserPage] = useState<"home" | "cloud">("home");
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("Канал нестабилен");
 
@@ -103,7 +104,7 @@ export default function Home() {
     if (cmd === "cat system.log") response = "[??:14] login: unknown_17\n[??:17] deleted: user_fragment.log\n[??:18] archive locked";
     if (cmd === "cat user_fragment.log" || cmd === "cat .trash/user_fragment.log") response = restored ? "HOUR_FRAGMENT = 03\nKEY_FORMAT = HHMM" : "Ошибка: файл помечен как удалённый. Используйте recover.";
     if (cmd === "pkg search protocol:pika" || cmd === "pkg search pika") response = "Подключение к legacy.memoria... OK\nСинхронизация индекса пакетов... OK\n\nНайдено: 2\npikanichok-browser  0.8.14  legacy  [PIKA, HTTP]\npikaview-lite       0.3.1   unsupported";
-    if (cmd === "pkg info pikanichok-browser") response = "Пакет: pikanichok-browser\nНазвание: Pikanichok Navigator\nВерсия: 0.8.14\nРазмер загрузки: 14.8 MB\nИздатель: PIKA Systems\nПодпись: ПРОСРОЧЕНА\nПротоколы: HTTP, PIKA, MEM";
+    if (cmd === "pkg info pikanichok-browser") response = "Пакет: pikanichok-browser\nНазвание: Pikanichok Navigator\nВерсия: 0.8.14\nРазмер загрузки: 14.8 MB\nИздатель: PIKA Systems\nПодпись: ПРОСРОЧЕНА\nПротоколы: HTTP, PIKA, MEM, SIXSEVEN";
     if (cmd === "pikanichok") {
       if (browserInstalled) { response = "Запуск Pikanichok Navigator 0.8.14..."; setBrowserPage("home"); setTimeout(() => openWindow("browser"), 350); }
       else response = "'pikanichok' не является установленной программой.\nПодсказка: pkg search protocol:pika";
@@ -185,14 +186,14 @@ export default function Home() {
       {zOrder.map((app, index) => windows[app] === "open" && <Window key={app} title={windowTitle(app)} active={zOrder[zOrder.length - 1] === app} layer={index} app={app} onFocus={() => focusWindow(app)} onClose={() => closeWindow(app)} onMinimize={() => minimizeWindow(app)}>
         {app === "readme" && <Readme onContinue={() => openWindow("files")} />}
         {app === "files" && <FileExplorer selected={selectedFile} setSelected={setSelectedFile} restored={restored} openArchive={() => openWindow("archive")} />}
-        {app === "terminal" && <div className="terminal"><div className="terminal-output">{terminal.map((line, i) => <div key={i}>{line}</div>)}<div ref={terminalEndRef} /></div><div className="terminal-input"><span>C:\RECOVERY&gt;</span><input value={command} onChange={(e) => setCommand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && runCommand()} aria-label="Команда терминала" /></div></div>}
-        {app === "archive" && <Archive restored={restored} code={archiveCode} setCode={setArchiveCode} unlock={unlockArchive} done={chapterDone} openLink={() => { if (browserInstalled) { setBrowserPage("inheritance"); openWindow("browser"); } else setProtocolError(true); }} />}
+        {app === "terminal" && <div className="terminal"><div className="terminal-output">{terminal.map((line, i) => <TerminalLine key={i} line={line} />)}<div ref={terminalEndRef} /></div><div className="terminal-input"><span>C:\RECOVERY&gt;</span><input value={command} onChange={(e) => setCommand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && runCommand()} aria-label="Команда терминала" /></div></div>}
+        {app === "archive" && <Archive restored={restored} code={archiveCode} setCode={setArchiveCode} unlock={unlockArchive} done={chapterDone} openLink={() => { if (browserInstalled) { setBrowserPage("cloud"); openWindow("browser"); } else setProtocolError(true); }} />}
         {app === "log" && <pre className="text-file">[??:14:08] LOGIN unknown_17\n[??:17:42] DELETE user_fragment.log\n[??:18:01] LOCK inheritance.arc\n[??:18:07] SESSION LOST</pre>}
         {app === "help" && <div className="document"><h2>Справка</h2><p>Исследуйте файлы двойным щелчком. Терминал понимает команды <code>help</code>, <code>ls</code>, <code>cat</code>, <code>status</code> и <code>recover</code>.</p></div>}
         {app === "browser" && <Pikanichok page={browserPage} />}
       </Window>)}
 
-      {protocolError && <div className="protocol-error" role="alertdialog" aria-label="Ошибка протокола"><header>MEMORIA NETWORK SERVICE <button onClick={() => setProtocolError(false)}>×</button></header><div className="error-body"><div className="error-icon">!</div><div><h3>Невозможно открыть этот адрес</h3><p>В системе отсутствует обработчик протокола <b>PIKA</b>.</p><pre>Адрес: pika://inheritance/node-0314{`\n`}Код ошибки: NO_PROTOCOL_HANDLER</pre><p className="error-hint">Совместимое программное обеспечение может находиться в старых репозиториях.</p><code>pkg search protocol:pika</code></div></div><footer><button className="system-button" onClick={() => setProtocolError(false)}>Закрыть</button></footer></div>}
+      {protocolError && <div className="protocol-error" role="alertdialog" aria-label="Ошибка протокола"><header>MEMORIA NETWORK SERVICE <button onClick={() => setProtocolError(false)}>×</button></header><div className="error-body"><div className="error-icon">!</div><div><h3>Невозможно открыть этот адрес</h3><p>В системе отсутствует обработчик протокола <b>PIKA</b>.</p><pre>Адрес: pika://oblako-foto/xxx-228-lox/{`\n`}Код ошибки: NO_PROTOCOL_HANDLER</pre><p className="error-hint">Совместимое программное обеспечение может находиться в старых репозиториях.</p><code>pkg search protocol:pika</code></div></div><footer><button className="system-button" onClick={() => setProtocolError(false)}>Закрыть</button></footer></div>}
 
       <div className="status-toast"><i className={chapterDone ? "ok" : ""} /> {notice}</div>
       <footer className="taskbar">
@@ -207,6 +208,10 @@ export default function Home() {
 }
 
 function DesktopIcon({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) { return <button className="desktop-icon" onDoubleClick={onClick} onClick={onClick}><span>{icon}</span><em>{label}</em></button>; }
+function TerminalLine({ line }: { line: string }) {
+  const parts = line.split("SIXSEVEN");
+  return <div>{parts.map((part, index) => <span key={index}>{part}{index < parts.length - 1 && <b className="clue-red">SIXSEVEN</b>}</span>)}</div>;
+}
 function Window({ title, active, layer, app, onClose, onMinimize, onFocus, children }: { title: string; active: boolean; layer: number; app: AppId; onClose: () => void; onMinimize: () => void; onFocus: () => void; children: React.ReactNode }) {
   const positions: Record<AppId, { left: string; top: string }> = { readme: { left: "48%", top: "47%" }, files: { left: "52%", top: "50%" }, terminal: { left: "55%", top: "54%" }, archive: { left: "50%", top: "49%" }, log: { left: "54%", top: "46%" }, help: { left: "46%", top: "52%" }, browser: { left: "51%", top: "48%" } };
   return <section className={`window ${active ? "window-active" : "window-inactive"}`} style={{ zIndex: 10 + layer, left: positions[app].left, top: positions[app].top }} onMouseDown={onFocus}><header className="titlebar"><span>▥ {title}</span><div><button aria-label={`Свернуть ${title}`} onClick={(e) => { e.stopPropagation(); onMinimize(); }}>_</button><button aria-label={`Закрыть ${title}`} onClick={(e) => { e.stopPropagation(); onClose(); }}>×</button></div></header><nav className="menubar">Файл　 Правка　 Вид　 Справка</nav><div className="window-content">{children}</div><div className="window-status">MEMORIA REMOTE VOLUME · READ ONLY</div></section>;
@@ -216,8 +221,8 @@ function windowTitle(app: AppId) { return ({ readme: "ПРОЧТИ_МЕНЯ — 
 function Readme({ onContinue }: { onContinue: () => void }) { return <article className="document letter"><div className="stamp">URGENT<br/><b>14 MAR</b></div><p className="mono-meta">RECOVERY NOTE / НЕ ОТПРАВЛЯТЬ ПО ПОЧТЕ</p><h1>Если ты это читаешь — резервный канал сработал.</h1><p>Кто-то получил доступ к моему компьютеру. Я успел перенести сюда несколько файлов, связанных с наследством, но часть данных удалена.</p><p>Начни с первой фотографии. Система сохранила только правую половину времени, а левую кто-то удалил вместе с журналом пользователя.</p><p>Чтобы открыть архив, придётся восстановить недостающий фрагмент и соединить обе половины.</p><p className="signature">— твой брат<br/><small>P.S. Если увидишь пользователя <b>unknown_17</b>, отключись.</small></p><button className="system-button" onClick={onContinue}>Открыть файлы →</button></article>; }
 
 function FileExplorer({ selected, setSelected, restored, openArchive }: { selected: FileId; setSelected: (id: FileId) => void; restored: boolean; openArchive: () => void }) {
-  const list: FileId[] = ["photo", "note", "log", "archive", ...(restored ? ["deleted" as FileId] : [])];
-  return <div className="explorer"><aside><b>RECOVERY (C:)</b><span>└─ documents</span><span>└─ archive</span><span>└─ system</span><span className="muted">└─ .trash</span></aside><div className="file-area"><div className="file-grid">{list.map((id) => <button key={id} className={selected === id ? "selected" : ""} onClick={() => setSelected(id)} onDoubleClick={() => id === "archive" && openArchive()}><span>{files[id].icon}</span><em>{files[id].name}</em></button>)}</div><FilePreview id={selected} restored={restored} openArchive={openArchive} /></div></div>;
+  const list: FileId[] = ["photo", "note", "log", "epstein", "archive", ...(restored ? ["deleted" as FileId] : [])];
+  return <div className="explorer"><aside><b>RECOVERY (C:)</b><span>└─ documents</span><span>└─ archive</span><span>└─ system</span><span className="muted">└─ .trash</span></aside><div className="file-area"><div className="file-grid">{list.map((id) => <button key={id} className={`${selected === id ? "selected" : ""} ${id === "epstein" ? "locked-clue" : ""}`} onClick={() => setSelected(id)} onDoubleClick={() => id === "archive" && openArchive()}><span>{files[id].icon}</span><em>{files[id].name}</em></button>)}</div><FilePreview id={selected} restored={restored} openArchive={openArchive} /></div></div>;
 }
 
 function FilePreview({ id, restored, openArchive }: { id: FileId; restored: boolean; openArchive: () => void }) {
@@ -225,16 +230,20 @@ function FilePreview({ id, restored, openArchive }: { id: FileId; restored: bool
   if (id === "note") return <div className="preview"><p><b>заметка_без_даты.txt</b></p><p>«Ключ — это полное время первой фотографии: часы, затем минуты. Часы остались в удалённом журнале».</p></div>;
   if (id === "log") return <div className="preview"><p><b>system.log</b></p><pre>[??:14] login: unknown_17{`\n`}[??:17] delete: user_fragment.log</pre></div>;
   if (id === "deleted") return <div className="preview"><p><b>user_fragment.log</b> · восстановлен</p><pre>HOUR_FRAGMENT = 03{`\n`}KEY_FORMAT = HHMM</pre></div>;
+  if (id === "epstein") return <div className="preview locked-preview"><p><b className="clue-red">.Jeffrey_Epstein_year</b></p><p>Доступ запрещён системной политикой.</p><pre>PERMISSION: ROOT_ONLY{`\n`}CONTENT: [ENCRYPTED]</pre></div>;
   if (id === "archive") return <div className="preview"><p><b>НАСЛЕДСТВО.arc</b></p><p>Зашифрованный архив. Требуется четырёхзначный ключ.</p><button className="system-button" onClick={openArchive}>Открыть архив</button></div>;
   return <div className="preview"><p>{restored ? "Фрагмент восстановлен." : "Файл недоступен."}</p></div>;
 }
 
 function Archive({ restored, code, setCode, unlock, done, openLink }: { restored: boolean; code: string; setCode: (v: string) => void; unlock: () => void; done: boolean; openLink: () => void }) {
-  if (done) return <div className="archive-unpacked"><div className="archive-header"><div className="seal">I</div><div><p className="eyebrow">КОНТЕЙНЕР РАСШИФРОВАН</p><h2>НАСЛЕДСТВО.arc</h2></div></div><p>В архиве обнаружено три объекта:</p><div className="archive-files"><button onDoubleClick={openLink} onClick={openLink}><span>◎</span><b>ENTRY_POINT.url</b><small>pika://inheritance/node-0314</small></button><div><span>▤</span><b>browser_note.txt</b><small>«Обычные браузеры этого адреса не увидят»</small></div><div><span>◇</span><b>signature.key</b><small>PIKA LEGACY CERTIFICATE</small></div></div><div className="archive-tip">Дважды щёлкните ENTRY_POINT.url, чтобы открыть ссылку.</div></div>;
+  if (done) return <div className="archive-unpacked"><div className="archive-header"><div className="seal">I</div><div><p className="eyebrow">КОНТЕЙНЕР РАСШИФРОВАН</p><h2>НАСЛЕДСТВО.arc</h2></div></div><p>В архиве обнаружено три объекта:</p><div className="archive-files"><button onDoubleClick={openLink} onClick={openLink}><span>◎</span><b>ENTRY_POINT.url</b><small>pika://oblako-foto/xxx-228-lox/</small></button><div><span>▤</span><b>browser_note.txt</b><small>«Обычные браузеры этого адреса не увидят»</small></div><div><span>◇</span><b>signature.key</b><small>PIKA LEGACY CERTIFICATE</small></div></div><div className="archive-tip">Дважды щёлкните ENTRY_POINT.url, чтобы открыть ссылку.</div></div>;
   return <div className="archive"><div className="lock">▣</div><p className="eyebrow">AES LEGACY CONTAINER</p><h2>НАСЛЕДСТВО.arc</h2><p>Архив повреждён, но заголовок читается. Введите четырёхзначный ключ.</p><label>КЛЮЧ ДОСТУПА<input maxLength={5} value={code} onChange={(e) => setCode(e.target.value)} placeholder="_ _ _ _" /></label><button className="system-button danger" onClick={unlock}>РАСШИФРОВАТЬ</button><small>{restored ? "Удалённый фрагмент восстановлен: часы = 03, формат = HHMM. Минуты ищите на первой фотографии." : "В корзине обнаружен удалённый фрагмент. Его можно восстановить через терминал."}</small></div>;
 }
 
-function Pikanichok({ page }: { page: "home" | "inheritance" }) {
+function Pikanichok({ page }: { page: "home" | "cloud" }) {
+  const [cloudPassword, setCloudPassword] = useState("");
+  const [cloudOpen, setCloudOpen] = useState(false);
+  const [cloudError, setCloudError] = useState(false);
   if (page === "home") return <div className="pika-browser"><div className="pika-toolbar"><button>←</button><button>→</button><button>↻</button><span className="pika-address">pika://home</span><button>ПЕРЕЙТИ</button></div><div className="pika-page pika-home"><div className="pika-logo">PIKANICHOK <small>NAVIGATOR 0.8.14</small></div><div className="home-orbit">◎</div><h1>Добро пожаловать в Pikanet</h1><p>Устаревшая распределённая сеть. Для перехода введите адрес PIKA или откройте совместимую ссылку.</p><div className="home-links"><span>КАТАЛОГ УЗЛОВ — недоступен</span><span>ПОЧТА — соединение отсутствует</span><span>АРХИВ СЕТИ — требуется адрес</span></div></div><div className="pika-status">Домашняя страница · PIKA driver active</div></div>;
-  return <div className="pika-browser"><div className="pika-toolbar"><button>←</button><button>→</button><button>↻</button><span className="pika-address">pika://inheritance/node-0314</span><button>ПЕРЕЙТИ</button></div><div className="pika-page"><div className="pika-logo">PIKANICHOK <small>NAVIGATOR 0.8.14</small></div><div className="certificate-warning"><b>СЕРТИФИКАТ УЗЛА ПРОСРОЧЕН</b><span>Последняя проверка: 6 214 дней назад</span></div><h1>Узел найден.</h1><p>Доступ к следующему сектору установлен, но содержимое ещё не загружено.</p><pre>NODE: INHERITANCE-0314{`\n`}OWNER: [REDACTED]{`\n`}REMOTE SESSION: ACTIVE</pre><p className="observer">unknown_17: «Ты установила именно ту версию, которую я оставил»</p><button className="system-button danger">ПРОДОЛЖИТЬ НА СВОЙ РИСК</button></div><div className="pika-status">Готово · защищённость соединения неизвестна</div></div>;
+  return <div className="pika-browser"><div className="pika-toolbar"><button>←</button><button>→</button><button>↻</button><span className="pika-address">pika://oblako-foto/xxx-228-lox/</span><button>ПЕРЕЙТИ</button></div><div className="pika-page cloud-page"><div className="cloud-brand">ОБЛАКО<span>ФОТО</span> <small>PIKA STORAGE SERVICE</small></div>{cloudOpen ? <div className="cloud-vault"><p className="eyebrow">ХРАНИЛИЩЕ РАСШИФРОВАНО</p><h1>Личный фотоархив</h1><p>Подключено 1 защищённое хранилище. Фотографии появятся в следующей части.</p><div className="cloud-albums"><div>▧<b>СЕМЕЙНЫЙ АРХИВ</b><small>23 объекта</small></div><div>▧<b>БЕЗ ДАТЫ</b><small>7 объектов</small></div><div className="corrupt-album">?<b>[ПОВРЕЖДЕНО]</b><small>1 объект</small></div></div></div> : <div className="cloud-login"><div className="cloud-lock">▣</div><p className="eyebrow">ЗАЩИЩЁННОЕ ОБЛАЧНОЕ ХРАНИЛИЩЕ</p><h1>Требуется пароль</h1><p>Владелец оставил четырёхзначный код в разных частях системы.</p><label>ПАРОЛЬ<input autoFocus inputMode="numeric" maxLength={4} value={cloudPassword} onChange={(e) => { setCloudPassword(e.target.value.replace(/\D/g, "")); setCloudError(false); }} onKeyDown={(e) => { if (e.key === "Enter") { if (cloudPassword === "6766") setCloudOpen(true); else setCloudError(true); } }} placeholder="••••" /></label><button className="system-button" onClick={() => { if (cloudPassword === "6766") setCloudOpen(true); else setCloudError(true); }}>ОТКРЫТЬ ХРАНИЛИЩЕ</button>{cloudError && <p className="cloud-error">Неверный пароль. Доступ записан в журнал.</p>}<small>Подсказка владельца: «два числа, четыре цифры»</small></div>}</div><div className="pika-status">oblako-foto · сквозное шифрование устарело</div></div>;
 }
