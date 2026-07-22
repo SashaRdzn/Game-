@@ -39,6 +39,7 @@ export default function Home() {
   const [browserInstalled, setBrowserInstalled] = useState(false);
   const [installState, setInstallState] = useState<"idle" | "awaiting" | "installing" | "done">("idle");
   const [protocolError, setProtocolError] = useState(false);
+  const [linkWarning, setLinkWarning] = useState(false);
   const [browserPage, setBrowserPage] = useState<"home" | "cloud">("home");
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState("Канал нестабилен");
@@ -187,13 +188,14 @@ export default function Home() {
         {app === "readme" && <Readme onContinue={() => openWindow("files")} />}
         {app === "files" && <FileExplorer selected={selectedFile} setSelected={setSelectedFile} restored={restored} openArchive={() => openWindow("archive")} />}
         {app === "terminal" && <div className="terminal"><div className="terminal-output">{terminal.map((line, i) => <TerminalLine key={i} line={line} />)}<div ref={terminalEndRef} /></div><div className="terminal-input"><span>C:\RECOVERY&gt;</span><input value={command} onChange={(e) => setCommand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && runCommand()} aria-label="Команда терминала" /></div></div>}
-        {app === "archive" && <Archive restored={restored} code={archiveCode} setCode={setArchiveCode} unlock={unlockArchive} done={chapterDone} openLink={() => { if (browserInstalled) { setBrowserPage("cloud"); openWindow("browser"); } else setProtocolError(true); }} />}
+        {app === "archive" && <Archive restored={restored} code={archiveCode} setCode={setArchiveCode} unlock={unlockArchive} done={chapterDone} openLink={() => { if (browserInstalled) setLinkWarning(true); else setProtocolError(true); }} />}
         {app === "log" && <pre className="text-file">[??:14:08] LOGIN unknown_17\n[??:17:42] DELETE user_fragment.log\n[??:18:01] LOCK inheritance.arc\n[??:18:07] SESSION LOST</pre>}
         {app === "help" && <div className="document"><h2>Справка</h2><p>Исследуйте файлы двойным щелчком. Терминал понимает команды <code>help</code>, <code>ls</code>, <code>cat</code>, <code>status</code> и <code>recover</code>.</p></div>}
         {app === "browser" && <Pikanichok page={browserPage} />}
       </Window>)}
 
       {protocolError && <div className="protocol-error" role="alertdialog" aria-label="Ошибка протокола"><header>MEMORIA NETWORK SERVICE <button onClick={() => setProtocolError(false)}>×</button></header><div className="error-body"><div className="error-icon">!</div><div><h3>Невозможно открыть этот адрес</h3><p>В системе отсутствует обработчик протокола <b>PIKA</b>.</p><pre>Адрес: pika://oblako-foto/xxx-228-lox/{`\n`}Код ошибки: NO_PROTOCOL_HANDLER</pre><p className="error-hint">Совместимое программное обеспечение может находиться в старых репозиториях.</p><code>pkg search protocol:pika</code></div></div><footer><button className="system-button" onClick={() => setProtocolError(false)}>Закрыть</button></footer></div>}
+      {linkWarning && <div className="link-warning" role="alertdialog" aria-label="Подтверждение перехода"><header>ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ</header><div className="link-warning-body"><div className="warning-icon">!</div><div><h3>Вы уверены, что хотите перейти на этот сайт?</h3><p>Адрес находится вне защищённой области MEMORIA:</p><code>pika://oblako-foto/xxx-228-lox/</code><small>Подлинность и безопасность узла не проверены.</small></div></div><footer><button className="system-button" onClick={() => setLinkWarning(false)}>Отмена</button><button className="system-button danger" onClick={() => { setLinkWarning(false); setBrowserPage("cloud"); openWindow("browser"); }}>Перейти</button></footer></div>}
 
       <div className="status-toast"><i className={chapterDone ? "ok" : ""} /> {notice}</div>
       <footer className="taskbar">
@@ -240,10 +242,42 @@ function Archive({ restored, code, setCode, unlock, done, openLink }: { restored
   return <div className="archive"><div className="lock">▣</div><p className="eyebrow">AES LEGACY CONTAINER</p><h2>НАСЛЕДСТВО.arc</h2><p>Архив повреждён, но заголовок читается. Введите четырёхзначный ключ.</p><label>КЛЮЧ ДОСТУПА<input maxLength={5} value={code} onChange={(e) => setCode(e.target.value)} placeholder="_ _ _ _" /></label><button className="system-button danger" onClick={unlock}>РАСШИФРОВАТЬ</button><small>{restored ? "Удалённый фрагмент восстановлен: часы = 03, формат = HHMM. Минуты ищите на первой фотографии." : "В корзине обнаружен удалённый фрагмент. Его можно восстановить через терминал."}</small></div>;
 }
 
+type BrowserView = "home" | "cloud" | "notfound";
+type BrowserTab = { id: number; title: string; address: string; view: BrowserView };
+
 function Pikanichok({ page }: { page: "home" | "cloud" }) {
   const [cloudPassword, setCloudPassword] = useState("");
   const [cloudOpen, setCloudOpen] = useState(false);
   const [cloudError, setCloudError] = useState(false);
-  if (page === "home") return <div className="pika-browser"><div className="pika-toolbar"><button>←</button><button>→</button><button>↻</button><span className="pika-address">pika://home</span><button>ПЕРЕЙТИ</button></div><div className="pika-page pika-home"><div className="pika-logo">PIKANICHOK <small>NAVIGATOR 0.8.14</small></div><div className="home-orbit">◎</div><h1>Добро пожаловать в Pikanet</h1><p>Устаревшая распределённая сеть. Для перехода введите адрес PIKA или откройте совместимую ссылку.</p><div className="home-links"><span>КАТАЛОГ УЗЛОВ — недоступен</span><span>ПОЧТА — соединение отсутствует</span><span>АРХИВ СЕТИ — требуется адрес</span></div></div><div className="pika-status">Домашняя страница · PIKA driver active</div></div>;
-  return <div className="pika-browser"><div className="pika-toolbar"><button>←</button><button>→</button><button>↻</button><span className="pika-address">pika://oblako-foto/xxx-228-lox/</span><button>ПЕРЕЙТИ</button></div><div className="pika-page cloud-page"><div className="cloud-brand">ОБЛАКО<span>ФОТО</span> <small>PIKA STORAGE SERVICE</small></div>{cloudOpen ? <div className="cloud-vault"><p className="eyebrow">ХРАНИЛИЩЕ РАСШИФРОВАНО</p><h1>Личный фотоархив</h1><p>Подключено 1 защищённое хранилище. Фотографии появятся в следующей части.</p><div className="cloud-albums"><div>▧<b>СЕМЕЙНЫЙ АРХИВ</b><small>23 объекта</small></div><div>▧<b>БЕЗ ДАТЫ</b><small>7 объектов</small></div><div className="corrupt-album">?<b>[ПОВРЕЖДЕНО]</b><small>1 объект</small></div></div></div> : <div className="cloud-login"><div className="cloud-lock">▣</div><p className="eyebrow">ЗАЩИЩЁННОЕ ОБЛАЧНОЕ ХРАНИЛИЩЕ</p><h1>Требуется пароль</h1><label>ПАРОЛЬ<input autoFocus inputMode="numeric" maxLength={4} value={cloudPassword} onChange={(e) => { setCloudPassword(e.target.value.replace(/\D/g, "")); setCloudError(false); }} onKeyDown={(e) => { if (e.key === "Enter") { if (cloudPassword === "6766") setCloudOpen(true); else setCloudError(true); } }} placeholder="••••" /></label><button className="system-button" onClick={() => { if (cloudPassword === "6766") setCloudOpen(true); else setCloudError(true); }}>ОТКРЫТЬ ХРАНИЛИЩЕ</button>{cloudError && <p className="cloud-error">Неверный пароль. Доступ записан в журнал.</p>}<small>Подсказка владельца: «dva chisla, chetyre tsifry»</small></div>}</div><div className="pika-status">oblako-foto · сквозное шифрование устарело</div></div>;
+  const cloudAddress = "pika://oblako-foto/xxx-228-lox/";
+  const initialTabs: BrowserTab[] = page === "cloud" ? [{ id: 1, title: "Pikanet", address: "pika://home", view: "home" }, { id: 2, title: "ОблакоФото", address: cloudAddress, view: "cloud" }] : [{ id: 1, title: "Pikanet", address: "pika://home", view: "home" }];
+  const [tabs, setTabs] = useState<BrowserTab[]>(initialTabs);
+  const [activeId, setActiveId] = useState(page === "cloud" ? 2 : 1);
+  const active = tabs.find((tab) => tab.id === activeId) || tabs[0];
+  const [address, setAddress] = useState(active.address);
+  const [pendingAddress, setPendingAddress] = useState<string | null>(null);
+
+  useEffect(() => setAddress(active.address), [active.id, active.address]);
+
+  function applyAddress(value: string) {
+    const normalized = value.trim() || "pika://home";
+    const view: BrowserView = normalized === "pika://home" ? "home" : normalized.replace(/\/$/, "") === cloudAddress.replace(/\/$/, "") ? "cloud" : "notfound";
+    const title = view === "home" ? "Pikanet" : view === "cloud" ? "ОблакоФото" : "Узел не найден";
+    setTabs((current) => current.map((tab) => tab.id === activeId ? { ...tab, address: normalized, view, title } : tab));
+    setAddress(normalized);
+  }
+
+  function requestNavigation() {
+    const target = address.trim() || "pika://home";
+    if (target === active.address) return;
+    if (target === "pika://home") applyAddress(target); else setPendingAddress(target);
+  }
+
+  function newTab() {
+    const id = Math.max(...tabs.map((tab) => tab.id), 0) + 1;
+    setTabs((current) => [...current, { id, title: "Новая вкладка", address: "pika://home", view: "home" }]);
+    setActiveId(id);
+  }
+
+  return <div className="pika-browser"><div className="pika-tabs">{tabs.map((tab) => <button key={tab.id} className={tab.id === activeId ? "active" : ""} onClick={() => setActiveId(tab.id)}><span>{tab.view === "cloud" ? "▧" : "◎"}</span>{tab.title}<i onClick={(e) => { e.stopPropagation(); if (tabs.length === 1) return; const remaining = tabs.filter((item) => item.id !== tab.id); setTabs(remaining); if (tab.id === activeId) setActiveId(remaining[remaining.length - 1].id); }}>×</i></button>)}<button className="new-tab" onClick={newTab}>+</button></div><div className="pika-toolbar"><button>←</button><button>→</button><button onClick={() => applyAddress(active.address)}>↻</button><input className="pika-address" value={address} onChange={(e) => setAddress(e.target.value)} onFocus={(e) => e.currentTarget.select()} onKeyDown={(e) => e.key === "Enter" && requestNavigation()} aria-label="Адрес PIKA"/><button onClick={requestNavigation}>ПЕРЕЙТИ</button></div>{active.view === "home" && <div className="pika-page pika-home"><div className="pika-logo">PIKANICHOK <small>NAVIGATOR 0.8.14</small></div><div className="home-orbit">◎</div><h1>Добро пожаловать в Pikanet</h1><p>Устаревшая распределённая сеть. Для перехода введите адрес PIKA или откройте совместимую ссылку.</p><div className="home-links"><span>КАТАЛОГ УЗЛОВ — недоступен</span><span>ПОЧТА — соединение отсутствует</span><span>АРХИВ СЕТИ — требуется адрес</span></div></div>}{active.view === "cloud" && <div className="pika-page cloud-page"><div className="cloud-brand">ОБЛАКО<span>ФОТО</span> <small>PIKA STORAGE SERVICE</small></div>{cloudOpen ? <div className="cloud-vault"><p className="eyebrow">ХРАНИЛИЩЕ РАСШИФРОВАНО</p><h1>Личный фотоархив</h1><p>Подключено 1 защищённое хранилище. Фотографии появятся в следующей части.</p><div className="cloud-albums"><div>▧<b>СЕМЕЙНЫЙ АРХИВ</b><small>23 объекта</small></div><div>▧<b>БЕЗ ДАТЫ</b><small>7 объектов</small></div><div className="corrupt-album">?<b>[ПОВРЕЖДЕНО]</b><small>1 объект</small></div></div></div> : <div className="cloud-login"><div className="cloud-lock">▣</div><p className="eyebrow">ЗАЩИЩЁННОЕ ОБЛАЧНОЕ ХРАНИЛИЩЕ</p><h1>Требуется пароль</h1><label>ПАРОЛЬ<input autoFocus inputMode="numeric" maxLength={4} value={cloudPassword} onChange={(e) => { setCloudPassword(e.target.value.replace(/\D/g, "")); setCloudError(false); }} onKeyDown={(e) => { if (e.key === "Enter") { if (cloudPassword === "6766") setCloudOpen(true); else setCloudError(true); } }} placeholder="••••" /></label><button className="system-button" onClick={() => { if (cloudPassword === "6766") setCloudOpen(true); else setCloudError(true); }}>ОТКРЫТЬ ХРАНИЛИЩЕ</button>{cloudError && <p className="cloud-error">Неверный пароль. Доступ записан в журнал.</p>}<small>Подсказка владельца: «dva chisla, chetyre tsifry»</small></div>}</div>}{active.view === "notfound" && <div className="pika-page pika-notfound"><div className="pika-logo">PIKANICHOK <small>NETWORK ERROR</small></div><div className="notfound-code">404</div><h1>Узел не найден</h1><p>Адрес <code>{active.address}</code> не отвечает или никогда не существовал.</p><pre>PIKA_DNS: NO_ROUTE{`\n`}ATTEMPTS: 3{`\n`}CACHE: EMPTY</pre></div>}<div className="pika-status">{active.address} · PIKA driver active</div>{pendingAddress && <div className="browser-confirm"><div><h3>Вы уверены, что хотите перейти на этот сайт?</h3><code>{pendingAddress}</code><p>Безопасность этого PIKA-узла не проверена.</p><footer><button onClick={() => setPendingAddress(null)}>Отмена</button><button className="danger" onClick={() => { applyAddress(pendingAddress); setPendingAddress(null); }}>Перейти</button></footer></div></div>}</div>;
 }
