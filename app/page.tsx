@@ -154,7 +154,7 @@ export default function Home() {
     let response = `Команда не найдена: ${raw}`;
     if (!raw || shellRestoring) return;
     setCommandHistory((items) => [...items, raw]);
-    if (cmd === "help") response = shellExtended ? "Базовые: help, clear, dir, ls, open <файл>, cat <файл>, status, whoami, history, recover <файл>, pkg <действие>, pikanichok, hack <url>\n\nУстановка Pikanichok:\npkg info pikanichok-browser\n→ pkg install pikanichok-browser\n\nРасширенные: lookup <объект>, trace <адрес>, inspect <объект>, decrypt-log <файл>, system-map, mail-header, wallet-info" : "Команды: help, clear, dir, ls, open <файл>, cat <файл>, status, whoami, history, recover <файл>, pkg <действие>, pikanichok, hack <url>\n\nУстановка Pikanichok:\npkg info pikanichok-browser\n→ pkg install pikanichok-browser";
+    if (cmd === "help") response = shellExtended ? "Базовые: help, clear, dir, ls, open <файл>, cat <файл>, status, whoami, history, recover <файл>, pkg <действие>, pikanichok, hack <url>\n\nПоиск браузера Pikanichok:\n→ pkg search protocol:pika\n\nРасширенные: lookup <объект>, trace <адрес>, inspect <объект>, decrypt-log <файл>, system-map, mail-header, wallet-info" : "Команды: help, clear, dir, ls, open <файл>, cat <файл>, status, whoami, history, recover <файл>, pkg <действие>, pikanichok, hack <url>\n\nПоиск браузера Pikanichok:\n→ pkg search protocol:pika";
     if (cmd === "dir") response = "README.txt  system.log  .trash  inheritance.arc  terminal_notes";
     if (cmd === "whoami") response = "recovery_guest [read-only] · session MEM-0314";
     if (cmd === "history") response = commandHistory.length ? commandHistory.map((item, index) => `${index + 1}  ${item}`).join("\n") : "История команд пуста.";
@@ -192,7 +192,7 @@ export default function Home() {
     }
     if (shellExtended && cmd.startsWith("lookup")) response = cmd === "lookup" ? "LOOKUP: требуется идентификатор объекта." : `LOOKUP ${raw.slice(7).trim()}: объект принят модулем анализа. Данные появятся в следующей главе.`;
     if (shellExtended && ["trace","inspect","decrypt-log","system-map","mail-header","wallet-info"].some((name) => cmd === name || cmd.startsWith(name + " "))) response = `${cmd.split(" ")[0].toUpperCase()}: модуль установлен, источник данных пока недоступен.`;
-    if (cmd === "pkg search protocol:pika" || cmd === "pkg search pika") response = "Подключение к legacy.memoria... OK\nСинхронизация индекса пакетов... OK\n\nНайдено: 2\npikanichok-browser  0.8.14  legacy  [PIKA, HTTP]\npikaview-lite       0.3.1   unsupported";
+    if (cmd === "pkg search protocol:pika" || cmd === "pkg search pika") response = "Подключение к legacy.memoria... OK\nСинхронизация индекса пакетов... OK\n\nНайдено: 2\npikanichok-browser  0.8.14  legacy  [PIKA, HTTP]\npikaview-lite       0.3.1   unsupported\n\nПодробнее о найденном пакете:\n→ pkg info pikanichok-browser";
     if (cmd === "pkg info pikanichok-browser") response = "Пакет: pikanichok-browser\nНазвание: Pikanichok Navigator\nВерсия: 0.8.14\nРазмер загрузки: 14.8 MB\nИздатель: PIKA Systems\nПодпись: ПРОСРОЧЕНА\nПротоколы: HTTP, PIKA, MEM, SIXSEVEN\n\nДля установки выполните:\n→ pkg install pikanichok-browser";
     if (cmd.startsWith("hack ")) {
       const target = raw.slice(5).trim().toLowerCase().replace(/\/$/, "");
