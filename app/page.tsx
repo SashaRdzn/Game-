@@ -57,8 +57,9 @@ export default function Home() {
   useEffect(() => {
     const saved = localStorage.getItem("memoria-progress");
     if (saved === "chapter1") {
-      setBooted(true); setRestored(true); setChapterDone(true);
+      setBooted(true); setChapterDone(true);
     }
+    if (localStorage.getItem("memoria-fragment-restored") === "true") setRestored(true);
     if (localStorage.getItem("memoria-pikanichok") === "installed") {
       setBrowserInstalled(true); setInstallState("done");
     }
@@ -242,6 +243,7 @@ export default function Home() {
     if (cmd === "recover user_fragment.log" || cmd === "recover .trash/user_fragment.log") {
       response = "Восстановление завершено.\nHOUR_FRAGMENT = 03\nKEY_FORMAT = HHMM";
       setRestored(true);
+      localStorage.setItem("memoria-fragment-restored", "true");
       setNotice("Обнаружен восстановленный фрагмент");
     }
     if (cmd === "clear") { setTerminal([]); setCommand(""); return; }
@@ -297,7 +299,7 @@ export default function Home() {
 
       {protocolError && <div className="protocol-error" role="alertdialog" aria-label="Ошибка протокола"><header>MEMORIA NETWORK SERVICE <button onClick={() => setProtocolError(false)}>×</button></header><div className="error-body"><div className="error-icon">!</div><div><h3>Невозможно открыть этот адрес</h3><p>В системе отсутствует обработчик протокола <b>PIKA</b>.</p><pre>Адрес: pika://oblako-foto/xxx-228-lox/{`\n`}Код ошибки: NO_PROTOCOL_HANDLER</pre><p className="error-hint">Совместимое программное обеспечение может находиться в старых репозиториях.</p><code>pkg search protocol:pika</code></div></div><footer><button className="system-button" onClick={() => setProtocolError(false)}>Закрыть</button></footer></div>}
       {linkWarning && <div className="link-warning" role="alertdialog" aria-label="Подтверждение перехода"><header>ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ</header><div className="link-warning-body"><div className="warning-icon">!</div><div><h3>Вы уверены, что хотите перейти на этот сайт?</h3><p>Адрес находится вне защищённой области MEMORIA:</p><code>{linkWarning}</code><small>Подлинность и безопасность узла не проверены.</small></div></div><footer><button className="system-button" onClick={() => setLinkWarning(null)}>Отмена</button><button className="system-button danger" onClick={() => { const target = linkWarning.includes("crypto-ne-naebalovo") ? "crypto" : linkWarning.includes("blackbox-market") ? "hackshop" : "cloud"; setLinkWarning(null); setBrowserPage(target); setBrowserNavKey((value) => value + 1); openWindow("browser"); }}>Перейти</button></footer></div>}
-      {malware && <MalwareStorm onClose={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); localStorage.removeItem("memoria-mail-arrived"); localStorage.removeItem("memoria-mail-unread"); location.reload(); }} />}
+      {malware && <MalwareStorm onClose={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-fragment-restored"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); localStorage.removeItem("memoria-mail-arrived"); localStorage.removeItem("memoria-mail-unread"); location.reload(); }} />}
 
       <div className="status-toast"><i className={chapterDone ? "ok" : ""} /> {notice}</div>
       {mailToast && <button className="mail-toast" onClick={() => { setMailToast(false); setMailUnread(false); localStorage.setItem("memoria-mail-unread", "false"); openWindow("mail"); }}><span>✉</span><div><b>Новое сообщение</b><p>unknown17@onallmail.net</p><small>KEY ACCEPTED</small></div><i>×</i></button>}
@@ -306,7 +308,7 @@ export default function Home() {
         {zOrder.map((app) => windows[app] && <button key={app} className={`task-button ${windows[app] === "minimized" ? "is-minimized" : zOrder[zOrder.length - 1] === app ? "is-active" : ""}`} onClick={() => toggleTaskWindow(app)}>{windowTitle(app)}</button>)}
         <div className="tray"><span>▥</span><span>{time}</span></div>
       </footer>
-      {startOpen && <div className="start-menu" onClick={(e) => e.stopPropagation()}><div className="start-brand">MEMORIA <small>4.1</small></div><button onClick={() => { openWindow("files"); setStartOpen(false); }}>▧ Проводник</button><button onClick={() => { openWindow("terminal"); setStartOpen(false); }}>&gt;_ Терминал</button><button onClick={() => { setMailUnread(false); localStorage.setItem("memoria-mail-unread", "false"); openWindow("mail"); setStartOpen(false); }}>✉ Почта</button>{browserInstalled && <button onClick={() => { setBrowserPage("home"); openWindow("browser"); setStartOpen(false); }}>◎ Pikanichok Navigator</button>}<button onClick={() => { openWindow("help"); setStartOpen(false); }}>? Справка</button><div className="start-divider" /><button onClick={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); localStorage.removeItem("memoria-mail-arrived"); localStorage.removeItem("memoria-mail-unread"); location.reload(); }}>↻ Сбросить сеанс</button></div>}
+      {startOpen && <div className="start-menu" onClick={(e) => e.stopPropagation()}><div className="start-brand">MEMORIA <small>4.1</small></div><button onClick={() => { openWindow("files"); setStartOpen(false); }}>▧ Проводник</button><button onClick={() => { openWindow("terminal"); setStartOpen(false); }}>&gt;_ Терминал</button><button onClick={() => { setMailUnread(false); localStorage.setItem("memoria-mail-unread", "false"); openWindow("mail"); setStartOpen(false); }}>✉ Почта</button>{browserInstalled && <button onClick={() => { setBrowserPage("home"); openWindow("browser"); setStartOpen(false); }}>◎ Pikanichok Navigator</button>}<button onClick={() => { openWindow("help"); setStartOpen(false); }}>? Справка</button><div className="start-divider" /><button onClick={() => { localStorage.removeItem("memoria-progress"); localStorage.removeItem("memoria-fragment-restored"); localStorage.removeItem("memoria-pikanichok"); localStorage.removeItem("memoria-wallet-hacked"); localStorage.removeItem("memoria-mail-arrived"); localStorage.removeItem("memoria-mail-unread"); location.reload(); }}>↻ Сбросить сеанс</button></div>}
       <div className="scanlines" />
     </main>
   );
@@ -417,7 +419,7 @@ function FilePreview({ id, restored, openArchive }: { id: FileId; restored: bool
   if (id === "photo") return <div className="preview"><div className="corrupt-photo"><span><b>??</b>:14</span><i>LEFT SECTOR LOST</i></div><p><b>IMG_A7.corrupt</b></p><p>Левая часть отметки времени уничтожена. Уцелели только минуты: <b>14</b>.</p></div>;
   if (id === "note") return <div className="preview"><p><b>заметка_без_даты.txt</b></p><p>«Ключ — это полное время первой фотографии: часы, затем минуты. Часы остались в удалённом журнале».</p></div>;
   if (id === "log") return <div className="preview"><p><b>system.log</b></p><pre>[??:14] login: unknown_17{`\n`}[??:17] delete: user_fragment.log</pre></div>;
-  if (id === "deleted") return <div className="preview"><p><b>user_fragment.log</b> · восстановлен</p><pre>HOUR_FRAGMENT = 03{`\n`}KEY_FORMAT = HHMM</pre></div>;
+  if (id === "deleted") return restored ? <div className="preview"><p><b>user_fragment.log</b> · восстановлен</p><pre>HOUR_FRAGMENT = 03{`\n`}KEY_FORMAT = HHMM</pre></div> : <div className="preview"><p><b>user_fragment.log</b> · удалён</p><p>Содержимое недоступно. Запись файловой системы можно попытаться восстановить через терминал.</p><pre>STATUS: DELETED{`\n`}CONTENT: [UNAVAILABLE]</pre></div>;
   if (id === "epstein") return <div className="preview locked-preview"><p><b className="clue-red">.Jeffrey_Epstein_year</b></p><p>Доступ запрещён системной политикой.</p><pre>PERMISSION: ROOT_ONLY{`\n`}CONTENT: [ENCRYPTED]</pre></div>;
   if (id === "archive") return <div className="preview"><p><b>НАСЛЕДСТВО.arc</b></p><p>Зашифрованный архив. Требуется четырёхзначный ключ.</p><button className="system-button" onClick={openArchive}>Открыть архив</button></div>;
   return <div className="preview"><p>{restored ? "Фрагмент восстановлен." : "Файл недоступен."}</p></div>;
