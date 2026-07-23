@@ -154,7 +154,7 @@ export default function Home() {
     let response = `Команда не найдена: ${raw}`;
     if (!raw || shellRestoring) return;
     setCommandHistory((items) => [...items, raw]);
-    if (cmd === "help") response = shellExtended ? "Базовые: help, clear, dir, ls, open <файл>, cat <файл>, status, whoami, history, recover <файл>, pkg <действие>, pikanichok, hack <url>\nРасширенные: lookup <объект>, trace <адрес>, inspect <объект>, decrypt-log <файл>, system-map, mail-header, wallet-info" : "Команды: help, clear, dir, ls, open <файл>, cat <файл>, status, whoami, history, recover <файл>, pkg <действие>, pikanichok, hack <url>";
+    if (cmd === "help") response = shellExtended ? "Базовые: help, clear, dir, ls, open <файл>, cat <файл>, status, whoami, history, recover <файл>, pkg <действие>, pikanichok, hack <url>\n\nУстановка Pikanichok:\npkg info pikanichok-browser\n→ pkg install pikanichok-browser\n\nРасширенные: lookup <объект>, trace <адрес>, inspect <объект>, decrypt-log <файл>, system-map, mail-header, wallet-info" : "Команды: help, clear, dir, ls, open <файл>, cat <файл>, status, whoami, history, recover <файл>, pkg <действие>, pikanichok, hack <url>\n\nУстановка Pikanichok:\npkg info pikanichok-browser\n→ pkg install pikanichok-browser";
     if (cmd === "dir") response = "README.txt  system.log  .trash  inheritance.arc  terminal_notes";
     if (cmd === "whoami") response = "recovery_guest [read-only] · session MEM-0314";
     if (cmd === "history") response = commandHistory.length ? commandHistory.map((item, index) => `${index + 1}  ${item}`).join("\n") : "История команд пуста.";
