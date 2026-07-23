@@ -193,7 +193,7 @@ export default function Home() {
     if (shellExtended && cmd.startsWith("lookup")) response = cmd === "lookup" ? "LOOKUP: требуется идентификатор объекта." : `LOOKUP ${raw.slice(7).trim()}: объект принят модулем анализа. Данные появятся в следующей главе.`;
     if (shellExtended && ["trace","inspect","decrypt-log","system-map","mail-header","wallet-info"].some((name) => cmd === name || cmd.startsWith(name + " "))) response = `${cmd.split(" ")[0].toUpperCase()}: модуль установлен, источник данных пока недоступен.`;
     if (cmd === "pkg search protocol:pika" || cmd === "pkg search pika") response = "Подключение к legacy.memoria... OK\nСинхронизация индекса пакетов... OK\n\nНайдено: 2\npikanichok-browser  0.8.14  legacy  [PIKA, HTTP]\npikaview-lite       0.3.1   unsupported";
-    if (cmd === "pkg info pikanichok-browser") response = "Пакет: pikanichok-browser\nНазвание: Pikanichok Navigator\nВерсия: 0.8.14\nРазмер загрузки: 14.8 MB\nИздатель: PIKA Systems\nПодпись: ПРОСРОЧЕНА\nПротоколы: HTTP, PIKA, MEM, SIXSEVEN";
+    if (cmd === "pkg info pikanichok-browser") response = "Пакет: pikanichok-browser\nНазвание: Pikanichok Navigator\nВерсия: 0.8.14\nРазмер загрузки: 14.8 MB\nИздатель: PIKA Systems\nПодпись: ПРОСРОЧЕНА\nПротоколы: HTTP, PIKA, MEM, SIXSEVEN\n\nДля установки выполните:\n→ pkg install pikanichok-browser";
     if (cmd.startsWith("hack ")) {
       const target = raw.slice(5).trim().toLowerCase().replace(/\/$/, "");
       if (hackInProgress) response = "HACK BUSY: другой процесс взлома уже выполняется.";
